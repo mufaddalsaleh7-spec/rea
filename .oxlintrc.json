@@ -1,9 +1,20 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "import", "unicorn", "oxc"],
+  "plugins": [
+    "typescript",
+    "import",
+    "unicorn",
+    "oxc"
+  ],
   "rules": {
-    "complexity": ["warn", 20],
-    "max-depth": ["warn", 4],
+    "complexity": [
+      "warn",
+      20
+    ],
+    "max-depth": [
+      "warn",
+      4
+    ],
     "max-lines": [
       "warn",
       {
@@ -20,7 +31,10 @@
         "skipComments": true
       }
     ],
-    "max-params": ["warn", 4],
+    "max-params": [
+      "warn",
+      4
+    ],
     "no-var": "warn",
     "no-var-requires": "error",
     "typescript/no-import-type-side-effects": "error"
@@ -37,7 +51,11 @@
       }
     },
     {
-      "files": ["tests/**/*.ts", "src/**/*.test.ts", "src/**/*.fixture.ts"],
+      "files": [
+        "tests/**/*.ts",
+        "src/**/*.test.ts",
+        "src/**/*.fixture.ts"
+      ],
       "rules": {
         "max-lines": "off",
         "max-lines-per-function": [
@@ -51,14 +69,20 @@
       }
     },
     {
-      "files": ["src/application/**/*.test.ts"],
+      "files": [
+        "src/application/**/*.test.ts"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": ["**/server/**", "**/cli.*", "**/main.*"],
+                "group": [
+                  "**/server/**",
+                  "**/cli.*",
+                  "**/main.*"
+                ],
                 "message": "Service tests must use application ports rather than CLI or MCP entrypoints."
               }
             ]
@@ -67,7 +91,9 @@
       }
     },
     {
-      "files": ["tests/composition/**/*.test.ts"],
+      "files": [
+        "tests/composition/**/*.test.ts"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -91,6 +117,21 @@
           }
         ]
       }
+    },
+    {
+      "files": [
+        "apps/vectorstudio/**/*.js"
+      ],
+      "env": {
+        "browser": true
+      },
+      "rules": {
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "complexity": "off",
+        "max-depth": "off",
+        "max-params": "off"
+      }
     }
   ],
   "env": {
@@ -108,6 +149,7 @@
     ".codex",
     ".devin",
     ".factory",
-    "third_party"
+    "third_party",
+    "apps/vectorstudio/vendor"
   ]
 }
