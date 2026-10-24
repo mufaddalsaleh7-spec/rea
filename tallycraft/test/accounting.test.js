@@ -362,6 +362,27 @@ test("Tally XML round-trips masters and vouchers", () => {
   clone.close();
 });
 
+test("import dry run reports the same outcome as a real import", () => {
+  const app = seeded();
+  const xml = app.exportXml();
+  const preview = app.importXml(xml, { dryRun: true });
+  const real = app.importXml(xml);
+
+  // Re-importing a book into itself must be rejected, not silently renumbered.
+  assert.equal(preview.vouchers, 0);
+  assert.equal(preview.ledgers, 0);
+  assert.equal(preview.skipped, real.skipped);
+  assert.deepEqual(
+    preview.warnings.map((warning) => warning.split(":")[0]),
+    real.warnings.map((warning) => warning.split(":")[0]),
+  );
+  assert.ok(
+    preview.warnings.some((warning) => warning.includes("already exists")),
+  );
+  assert.equal(app.listVouchers({ limit: 1000 }).length, 35);
+  app.close();
+});
+
 test("import dry run leaves the book untouched", () => {
   const app = seeded();
   const xml = app.exportXml({ masters: true, vouchers: true });

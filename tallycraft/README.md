@@ -11,7 +11,7 @@ The ledger lives in SQLite through Node's built-in `node:sqlite`.
 ```bash
 cd tallycraft
 npm start          # http://localhost:4310 with the demo company loaded
-npm test           # 26 tests: accounting invariants, import/export, HTTP surface
+npm test           # 27 tests: accounting invariants, import/export, HTTP surface
 ```
 
 ```
@@ -119,6 +119,7 @@ node bin/tallycraft.js import book.xml --dry-run
 
 | Method       | Path                                           | Purpose                                  |
 | ------------ | ---------------------------------------------- | ---------------------------------------- |
+| GET          | `/healthz`                                     | Plain-text liveness probe (`ok`)         |
 | GET          | `/api/health`                                  | Liveness plus company statistics         |
 | GET          | `/api/catalog`                                 | Groups, voucher types, units, GST rates  |
 | GET          | `/api/company`                                 | Company profile and financial year       |
@@ -217,13 +218,14 @@ tallycraft/
 npm test
 ```
 
-26 tests cover: catalog shape, money parsing and Indian grouping, seeded
+27 tests cover: catalog shape, money parsing and Indian grouping, seeded
 balance, balance-sheet identity on four dates, per-voucher balance, rejection
 paths (unbalanced, too few lines, outside FY, reserved group, unknown ledger,
 duplicate number), numbering, warnings, ledger reconciliation, day-book totals,
 outstanding ageing versus the debtors statistic, inventory valuation, P&L
 sections, XML round-trip, dry-run rollback, master guards, and the HTTP surface
-including static-path traversal.
+including static-path traversal, plus a check that a dry-run import reports
+exactly what the real import would do.
 
 ## Licence
 

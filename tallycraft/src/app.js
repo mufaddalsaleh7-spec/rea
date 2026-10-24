@@ -1877,15 +1877,16 @@ export class TallyCraft {
         return;
       }
       try {
-        if (!dryRun) {
-          this.createVoucher({
-            type: typeName,
-            date,
-            number: childText(node, "VOUCHERNUMBER") ?? undefined,
-            narration: childText(node, "NARRATION") ?? undefined,
-            lines,
-          });
-        }
+        // Always attempt the write, even for a preview: the surrounding
+        // transaction is rolled back instead, so a dry run validates exactly
+        // what a real import would do (duplicates, balance, financial year).
+        this.createVoucher({
+          type: typeName,
+          date,
+          number: childText(node, "VOUCHERNUMBER") ?? undefined,
+          narration: childText(node, "NARRATION") ?? undefined,
+          lines,
+        });
         summary.vouchers += 1;
       } catch (error) {
         summary.skipped += 1;
