@@ -109,6 +109,13 @@ function navigate(hash) {
   else location.hash = hash;
 }
 
+/** Change a report parameter for the current route only, then repaint. */
+function setOverride(key, value) {
+  state.overrides = { ...state.overrides, [key]: value };
+  state.params = { ...state.params, [key]: value };
+  render();
+}
+
 /* ------------------------------------------------------------------ header */
 
 function paintHeader() {
@@ -165,8 +172,13 @@ function parseHash() {
 
 async function render() {
   const route = parseHash();
+  const routeKey = `${route.screen}:${route.name ?? ""}:${route.ledgerId ?? ""}`;
+  if (state.routeKey !== routeKey) {
+    state.routeKey = routeKey;
+    state.overrides = {};
+  }
   state.screen = route.screen;
-  state.params = { ...state.params, ...route };
+  state.params = { ...route, ...state.overrides };
   setNav(
     route.screen === "report" || route.screen === "vouchers"
       ? route.screen === "report"
@@ -386,7 +398,11 @@ async function renderGateway() {
         "div",
         { class: "card" },
         el("h2", {}, "Transactions & masters"),
-        el("div", { class: "gateway-list" }, txItems.map(gatewayItem)),
+        el(
+          "div",
+          { class: "gateway-list" },
+          txItems.map((item) => gatewayItem(item)),
+        ),
         el("div", { class: "gateway-section-title" }, "Master data"),
         el(
           "div",
@@ -406,7 +422,11 @@ async function renderGateway() {
           "Reports",
           el("a", { class: "small", href: "#/reports" }, "All reports →"),
         ),
-        el("div", { class: "gateway-list" }, reportItems.map(gatewayItem)),
+        el(
+          "div",
+          { class: "gateway-list" },
+          reportItems.map((item) => gatewayItem(item)),
+        ),
       ),
     ),
     recent,
@@ -1008,7 +1028,6 @@ async function renderVoucherEntry(typeCode) {
         ? "Sundry Creditors"
         : null;
 
-  const lineRows = [];
   const inventoryRows = [];
   const linesBody = el("tbody");
   const inventoryBody = el("tbody");
@@ -1234,6 +1253,11 @@ async function renderVoucherEntry(typeCode) {
             .filter((ledger) => ledger.group === partyLedger)
             .map((ledger) => el("option", { value: ledger.name }, ledger.name)),
         );
+  partySelect?.addEventListener("change", () => {
+    const target =
+      lines.find((line) => line.ledgerSelect.value === "") ?? lines[0];
+    if (target !== undefined) target.ledgerSelect.value = partySelect.value;
+  });
 
   const save = async () => {
     const payloadLines = [];
@@ -1623,10 +1647,7 @@ async function renderTrialBalance() {
   const dateInput = el("input", {
     type: "date",
     value: asOf,
-    onchange: (event) => {
-      state.params.asOf = event.target.value;
-      render();
-    },
+    onchange: (event) => setOverride("asOf", event.target.value),
   });
 
   view.replaceChildren(
@@ -1757,10 +1778,7 @@ async function renderBalanceSheet() {
       el("input", {
         type: "date",
         value: asOf,
-        onchange: (event) => {
-          state.params.asOf = event.target.value;
-          render();
-        },
+        onchange: (event) => setOverride("asOf", event.target.value),
       }),
       el("button", { class: "button", onclick: () => window.print() }, "Print"),
     ]),
@@ -1845,18 +1863,12 @@ async function renderProfitLoss() {
     el("input", {
       type: "date",
       value: from,
-      onchange: (event) => {
-        state.params.from = event.target.value;
-        render();
-      },
+      onchange: (event) => setOverride("from", event.target.value),
     }),
     el("input", {
       type: "date",
       value: to,
-      onchange: (event) => {
-        state.params.to = event.target.value;
-        render();
-      },
+      onchange: (event) => setOverride("to", event.target.value),
     }),
   );
 
@@ -1936,10 +1948,7 @@ async function renderDayBook() {
       el("input", {
         type: "date",
         value: date,
-        onchange: (event) => {
-          state.params.asOf = event.target.value;
-          render();
-        },
+        onchange: (event) => setOverride("asOf", event.target.value),
       }),
       el("button", { class: "button", onclick: () => window.print() }, "Print"),
     ]),
@@ -2073,18 +2082,12 @@ async function renderLedgerReport(ledgerId) {
         el("input", {
           type: "date",
           value: from,
-          onchange: (event) => {
-            state.params.from = event.target.value;
-            render();
-          },
+          onchange: (event) => setOverride("from", event.target.value),
         }),
         el("input", {
           type: "date",
           value: to,
-          onchange: (event) => {
-            state.params.to = event.target.value;
-            render();
-          },
+          onchange: (event) => setOverride("to", event.target.value),
         }),
         el(
           "button",
@@ -2188,7 +2191,7 @@ async function renderLedgerReport(ledgerId) {
 }
 
 async function renderOutstanding() {
-  const type = state.params.type ?? "receivable";
+  const type = state.params.type === "payable" ? "payable" : "receivable";
   const asOf = state.params.asOf ?? state.company.financialYearEnd;
   const report = await api(
     `/api/reports/outstanding?type=${type}&asOf=${asOf}`,
@@ -2202,20 +2205,18 @@ async function renderOutstanding() {
           "button",
           {
             class: "button",
-            onclick: () => {
-              state.params.type = type === "payable" ? "receivable" : "payable";
-              render();
-            },
+            onclick: () =>
+              setOverride(
+                "type",
+                type === "payable" ? "receivable" : "payable",
+              ),
           },
           type === "payable" ? "Show receivables" : "Show payables",
         ),
         el("input", {
           type: "date",
           value: asOf,
-          onchange: (event) => {
-            state.params.asOf = event.target.value;
-            render();
-          },
+          onchange: (event) => setOverride("asOf", event.target.value),
         }),
       ],
     ),
@@ -2308,10 +2309,7 @@ async function renderStockSummary() {
       el("input", {
         type: "date",
         value: asOf,
-        onchange: (event) => {
-          state.params.asOf = event.target.value;
-          render();
-        },
+        onchange: (event) => setOverride("asOf", event.target.value),
       }),
       el("button", { class: "button", onclick: () => window.print() }, "Print"),
     ]),
@@ -2384,18 +2382,12 @@ async function renderGstSummary() {
       el("input", {
         type: "date",
         value: from,
-        onchange: (event) => {
-          state.params.from = event.target.value;
-          render();
-        },
+        onchange: (event) => setOverride("from", event.target.value),
       }),
       el("input", {
         type: "date",
         value: to,
-        onchange: (event) => {
-          state.params.to = event.target.value;
-          render();
-        },
+        onchange: (event) => setOverride("to", event.target.value),
       }),
     ]),
     el(
