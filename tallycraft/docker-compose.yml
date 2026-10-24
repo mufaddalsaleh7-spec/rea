@@ -1,0 +1,44 @@
+# Single-host deployment. One writer is the point: SQLite is the book, and a
+# book has one keeper. Scale reads with a replica or a proxy cache, never by
+# running two containers over the same volume.
+#
+#   cp .env.example .env && docker compose up -d --build
+#   docker compose logs -f
+#   docker compose exec tallycraft node scripts/backup.mjs
+#
+services:
+  tallycraft:
+    build:
+      context: .
+    image: tallycraft:1.0.0
+    container_name: tallycraft
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      TALLYCRAFT_DB: /data/tallycraft.db
+      TALLYCRAFT_DEMO: "${TALLYCRAFT_DEMO:-0}"
+      PUBLIC_URL: "${PUBLIC_URL:-}"
+      TALLYCRAFT_RELEASE: "${TALLYCRAFT_RELEASE:-local}"
+    volumes:
+      - tallycraft-data:/data
+    healthcheck:
+      test: ["CMD", "node", "scripts/healthcheck.mjs"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    # Give the server time to drain before SIGKILL.
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  tallycraft-data:
+    name: tallycraft-data

@@ -254,13 +254,56 @@ tallycraft/
   scripts/generate-icons.mjs  rasterises the app icons with no dependencies
   scripts/serve.mjs      supervisor: port resolution, restart, watchdog, discovery
   scripts/bootstrap.mjs  idempotent bring-up for a recycled sandbox
+  scripts/backup.mjs     hot, verified backup (VACUUM INTO) with retention
+  scripts/restore.mjs    guarded restore that keeps the replaced database
+  scripts/healthcheck.mjs container health probe for /healthz
+  src/config.js          environment contract, validated at boot
   public/                index.html, styles.css, app.js (no build step)
   public/manifest.webmanifest  installable-app metadata and shortcuts
   public/sw.js           service worker: offline shell and cached reads
   public/icons/          generated PNG icons, maskable and apple-touch
-  test/                  accounting invariants + HTTP boundary
-  docs/                  reconstruction evidence, design notes
+  test/                  accounting invariants, HTTP boundary, deploy contract
+  docs/                  reconstruction evidence, design notes, deploy guide
+  Dockerfile             production image: node:22-alpine, non-root, healthcheck
+  docker-compose.yml     single-host deploy with a named volume at /data
+  render.yaml, fly.toml  managed-platform blueprints
+  deploy/                systemd unit, nginx and Caddy configs
 ```
+
+## Deploy it
+
+The app is one Node process and one SQLite file, so deployment is mostly about
+where that file lives and who can reach the port.
+
+```bash
+cp .env.example .env          # TALLYCRAFT_DEMO=0 for a real book
+docker compose up -d --build  # → http://localhost:3000
+docker compose ps             # STATUS becomes "healthy"
+```
+
+| Target          | Files                                                  |
+| --------------- | ------------------------------------------------------ |
+| Single host     | `docker-compose.yml`, `Dockerfile`                     |
+| VPS + TLS       | `deploy/systemd/`, `deploy/nginx/`, `deploy/Caddyfile` |
+| Render / Fly.io | `render.yaml`, `fly.toml`                              |
+
+Configuration is environment-only and validated at boot (`src/config.js`): a
+bad `PORT` or `PUBLIC_URL` stops the process with the variable named instead of
+booting into a wrong configuration.
+
+```bash
+node scripts/backup.mjs                    # hot, verified, hashed
+node scripts/restore.mjs --from <file> --yes
+docker compose exec tallycraft node scripts/backup.mjs
+```
+
+Backups use `VACUUM INTO`, so they are consistent while the server is writing.
+Restores verify the source first, keep the replaced database, and replace the
+file atomically. **Run exactly one instance per database** — SQLite allows many
+readers but one writer, which is the same rule as a paper book having one keeper.
+
+Full guide, including TLS, auth, upgrade and rollback procedures:
+[docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Design rules
 
@@ -288,6 +331,10 @@ tallycraft/
 | `npm run bootstrap`   | Repair only, no server                                            |
 | `npm run snapshot`    | Rebuild the offline `public/snapshot.html`                        |
 | `npm run icons`       | Regenerate the PNG icons and `favicon.ico`                        |
+| `npm run backup`      | Verified hot backup into `backups/` (retention 14)                |
+| `npm run restore`     | Restore a backup; keeps the replaced file as `.pre-restore-*`     |
+| `npm run health`      | Probe `/healthz` the way the container healthcheck does           |
+| `npm run docker:up`   | Build and start the single-host deployment                        |
 
 Supervisor guarantees, each covered by a test or a recorded manual check:
 
@@ -304,7 +351,7 @@ Supervisor guarantees, each covered by a test or a recorded manual check:
 npm test
 ```
 
-47 tests cover: catalog shape, money parsing and Indian grouping, seeded
+71 tests cover: catalog shape, money parsing and Indian grouping, seeded
 balance, balance-sheet identity on four dates, per-voucher balance, rejection
 paths (unbalanced, too few lines, outside FY, reserved group, unknown ledger,
 duplicate number), numbering, warnings, ledger reconciliation, day-book totals,
@@ -316,7 +363,10 @@ every response the client asks for, plus the supervisor's port resolution
 (reuse, skip, exhaust), instance identity, and the readiness contract, plus the
 web-app contract: the manifest is valid and every icon it lists is served, the
 worker is delivered from the root with a root scope, and every path the worker
-precaches actually exists.
+precaches actually exists, the deployment contract (the image exposes the port
+the app uses, the volume sits where `TALLYCRAFT_DB` points, the proxies forward
+the host and never cache the API), configuration parsing, and backup/restore
+including the refusal paths.
 
 ## Licence
 

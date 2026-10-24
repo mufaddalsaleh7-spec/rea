@@ -11,16 +11,22 @@
     "tallycraft": "bin/tallycraft.js"
   },
   "scripts": {
-    "start": "node scripts/serve.mjs --port 3000 --demo",
-    "preview": "node scripts/serve.mjs --port 3000 --demo",
-    "up": "node scripts/bootstrap.mjs --serve",
+    "backup": "node scripts/backup.mjs",
     "bootstrap": "node scripts/bootstrap.mjs",
     "check": "node scripts/bootstrap.mjs --check",
-    "seed": "node --disable-warning=ExperimentalWarning bin/tallycraft.js seed",
+    "docker:build": "docker build -t tallycraft:1.0.0 .",
+    "docker:logs": "docker compose logs -f --tail 100",
+    "docker:up": "docker compose up -d --build",
     "export": "node --disable-warning=ExperimentalWarning bin/tallycraft.js export",
+    "health": "node scripts/healthcheck.mjs",
+    "icons": "node scripts/generate-icons.mjs",
+    "preview": "node scripts/serve.mjs --port 3000 --demo",
+    "restore": "node scripts/restore.mjs",
+    "seed": "node --disable-warning=ExperimentalWarning bin/tallycraft.js seed",
     "snapshot": "node scripts/snapshot.mjs",
+    "start": "node scripts/serve.mjs --port 3000 --demo",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
-    "icons": "node scripts/generate-icons.mjs"
+    "up": "node scripts/bootstrap.mjs --serve"
   },
   "license": "MIT"
 }

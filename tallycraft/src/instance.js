@@ -25,6 +25,9 @@ export function instanceInfo({
   port,
   host = "0.0.0.0",
   sandboxId = undefined,
+  publicUrl = null,
+  environment = null,
+  release = null,
   startedAt = new Date(),
   pid = process.pid,
   dbPath = null,
@@ -41,7 +44,12 @@ export function instanceInfo({
     host,
     port,
     localUrl: `http://127.0.0.1:${port}`,
-    previewUrl: previewUrlFor(port, sandboxId),
+    // A deployed instance is reached at its own name; a sandbox preview is
+    // derived from the platform id. PUBLIC_URL always wins.
+    previewUrl: publicUrl ?? previewUrlFor(port, sandboxId),
+    publicUrl: publicUrl ?? null,
+    environment,
+    release,
     sandboxId: sandboxId ?? null,
     startedAt: started.toISOString(),
     uptimeSeconds: Math.max(

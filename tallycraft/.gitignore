@@ -1,5 +1,8 @@
 # Local database (SQLite plus WAL sidecars)
 data/
+
+# Verified backups produced by scripts/backup.mjs
+backups/
 *.db
 *.db-wal
 *.db-shm

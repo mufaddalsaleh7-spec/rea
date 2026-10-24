@@ -1,0 +1,32 @@
+# Render blueprint. Import this repository, then set PUBLIC_URL to the service
+# URL Render gives you (it is not knowable before the first deploy).
+#
+# A persistent disk is required: without it every deploy starts with an empty
+# book. Render allows one instance per service, which matches SQLite.
+services:
+  - type: web
+    name: tallycraft
+    runtime: docker
+    dockerfilePath: ./tallycraft/Dockerfile
+    dockerContext: ./tallycraft
+    plan: starter
+    region: singapore
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: TALLYCRAFT_DB
+        value: /data/tallycraft.db
+      - key: TALLYCRAFT_DEMO
+        value: "0"
+      - key: PUBLIC_URL
+        sync: false
+      - key: TALLYCRAFT_RELEASE
+        value: render
+    disk:
+      name: tallycraft-data
+      mountPath: /data
+      sizeGB: 1

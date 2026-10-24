@@ -1,0 +1,43 @@
+# VPS install: copy to /etc/systemd/system/tallycraft.service
+#
+#   sudo useradd --system --home /opt/tallycraft --shell /usr/sbin/nologin tallycraft
+#   sudo rsync -a --exclude data ./ /opt/tallycraft/
+#   sudo install -d -o tallycraft -g tallycraft /opt/tallycraft/data
+#   sudo systemctl daemon-reload && sudo systemctl enable --now tallycraft
+#
+# The unit sends SIGTERM and waits for the drain to finish, which is exactly
+# what the server's shutdown path expects.
+[Unit]
+Description=TallyCraft accounting web app
+Documentation=file:///opt/tallycraft/docs/DEPLOY.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tallycraft
+Group=tallycraft
+WorkingDirectory=/opt/tallycraft
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOST=127.0.0.1
+Environment=TALLYCRAFT_DB=/opt/tallycraft/data/tallycraft.db
+EnvironmentFile=-/etc/tallycraft.env
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning bin/tallycraft.js serve --host 127.0.0.1
+Restart=always
+RestartSec=3
+TimeoutStopSec=25
+
+# Hardening: the service only needs its own directory.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/tallycraft/data
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

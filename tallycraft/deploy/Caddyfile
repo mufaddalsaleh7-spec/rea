@@ -1,0 +1,10 @@
+# Caddy alternative: automatic TLS, two lines to serve.
+#   caddy run --config deploy/Caddyfile
+books.example.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:3000
+
+	# Same idea as the nginx config: do not cache data or the worker.
+	@dynamic path /api/* /sw.js /manifest.webmanifest /index.html
+	header @dynamic Cache-Control "no-store"
+}

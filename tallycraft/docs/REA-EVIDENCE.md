@@ -36,7 +36,7 @@ Each registration runs `/home/user/rea/scripts/rea.mjs mcp` over stdio, e.g. in
 ```toml
 [mcp_servers.rea]
 command = "/home/user/rea/scripts/rea.mjs"
-args = [ "mcp" ]
+args = ["mcp"]
 startup_timeout_sec = 30
 tool_timeout_sec = 450
 ```

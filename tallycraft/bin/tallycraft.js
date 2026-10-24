@@ -14,6 +14,7 @@ import { TallyCraft, TallyCraftError } from "../src/app.js";
 import { seed } from "../src/seed.js";
 import { createAppServer } from "../src/server.js";
 import { instanceInfo, previewUrlFor } from "../src/instance.js";
+import { ConfigError, resolveConfig } from "../src/config.js";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { VOUCHER_TYPES } from "../src/catalog.js";
@@ -47,7 +48,8 @@ function usage() {
   return `TallyCraft - a double-entry accounting workspace
 
 Usage
-  tallycraft serve [--port 4310] [--host 0.0.0.0] [--db FILE] [--demo]
+  tallycraft serve [--port 3000] [--host 0.0.0.0] [--db FILE] [--demo]
+                  [--also-listen 8080,5173] [--public-url https://books.example.com]
   tallycraft seed [--db FILE]
   tallycraft report <name> [--as-of DATE] [--from DATE] [--to DATE] [--json]
   tallycraft ledger list|add [options]
@@ -61,6 +63,11 @@ Reports
 
 Voucher types
   ${VOUCHER_TYPES.map((type) => `${type.name} (${type.shortcut})`).join(", ")}
+
+Environment
+  PORT, HOST, TALLYCRAFT_DB, TALLYCRAFT_DEMO, TALLYCRAFT_ALIASES,
+  PUBLIC_URL, TALLYCRAFT_RELEASE, NODE_ENV
+  (see docs/DEPLOY.md; bad values stop the process at boot)
 `;
 }
 
@@ -120,11 +127,27 @@ function gitIdentity() {
 }
 
 async function commandServe(flags) {
-  const port = Number(flags.port ?? process.env.PORT ?? 4310);
-  const host = String(flags.host ?? process.env.HOST ?? "0.0.0.0");
-  const dbPath = String(flags.db ?? defaultDatabase);
+  let config;
+  try {
+    config = resolveConfig(process.env, projectRoot);
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      console.error(`Configuration error — ${error.message}`);
+      process.exit(2);
+    }
+    throw error;
+  }
+  const port = Number(flags.port ?? config.port);
+  const host = String(flags.host ?? config.host);
+  const dbPath = String(flags.db ?? config.dbPath);
+  const publicUrl =
+    typeof flags["public-url"] === "string"
+      ? flags["public-url"]
+      : config.publicUrl;
+  mkdirSync(dirname(dbPath), { recursive: true });
+
   const app = TallyCraft.open(dbPath);
-  if (flags.demo === true) {
+  if (flags.demo === true || config.demo) {
     const result = seed(app);
     if (result.created)
       console.log(`Loaded demo company: ${result.company.name}`);
@@ -143,6 +166,9 @@ async function commandServe(flags) {
       port,
       host,
       sandboxId: process.env.E2B_SANDBOX_ID,
+      publicUrl,
+      environment: config.environment,
+      release: config.release,
       startedAt,
       pid: process.pid,
       dbPath,
@@ -184,6 +210,10 @@ async function commandServe(flags) {
     .split(",")
     .map((value) => Number(value.trim()))
     .filter((value) => Number.isInteger(value) && value > 0 && value !== port);
+  // Aliases come from the flag, the legacy env var, or the resolved config.
+  for (const alias of config.aliases) {
+    if (alias !== port && !alsoListen.includes(alias)) alsoListen.push(alias);
+  }
 
   const server = createAppServer({
     dbPath,
@@ -227,10 +257,32 @@ async function commandServe(flags) {
       );
     }
   });
-  for (const signal of ["SIGINT", "SIGTERM"]) {
-    process.on(signal, () => {
-      server.close(() => process.exit(0));
+  // Graceful shutdown. A container runtime sends SIGTERM and then SIGKILL
+  // after its grace period; in between we stop accepting, let in-flight
+  // requests finish, checkpoint SQLite through the normal close path, and
+  // only then exit. A second signal means "now".
+  let draining = false;
+  const shutdown = (signal) => {
+    if (draining) {
+      console.log(`${signal} again; exiting immediately`);
+      process.exit(1);
+    }
+    draining = true;
+    console.log(`${signal} received; draining connections`);
+    const force = setTimeout(() => {
+      console.log("drain timeout; closing open connections");
+      server.closeAllConnections();
+      for (const alias of server.extraServers) alias.closeAllConnections();
+    }, 8_000);
+    force.unref();
+    server.close(() => {
+      clearTimeout(force);
+      console.log("closed cleanly");
+      process.exit(0);
     });
+  };
+  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+    process.on(signal, () => shutdown(signal));
   }
 }
 
