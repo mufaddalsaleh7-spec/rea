@@ -134,9 +134,14 @@ Tests assert it covers every endpoint the client asks for.
 
 ## Ports
 
-| Port  | Use                                                       |
-| ----- | --------------------------------------------------------- |
-| 3000  | Supervised preview (`npm run preview`)                    |
-| 3001+ | Automatic fallback when 3000 is held by a foreign process |
+| Port             | Use                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------- |
+| 3000             | Supervised preview (`npm run preview`)                                                        |
+| 3001+            | Automatic fallback when 3000 is held by a foreign process                                     |
+| 8080, 5173, 4000 | Alias listeners (`--aliases`, default) — same handler, each reports itself in `/api/instance` |
+
+Every alias is best effort: if a port is already taken the instance starts
+anyway and lists the port in `skipped`. That way a preview proxy pointed at a
+conventional dev port (8080, 5173) still reaches this instance.
 
 Binding is always `0.0.0.0` so the preview proxy can reach it.

@@ -13,7 +13,7 @@ import { formatPaise } from "../src/money.js";
 import { TallyCraft, TallyCraftError } from "../src/app.js";
 import { seed } from "../src/seed.js";
 import { createAppServer } from "../src/server.js";
-import { instanceInfo } from "../src/instance.js";
+import { instanceInfo, previewUrlFor } from "../src/instance.js";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { VOUCHER_TYPES } from "../src/catalog.js";
@@ -178,6 +178,13 @@ async function commandServe(flags) {
     timer.unref();
   };
 
+  const alsoListen = String(
+    flags["also-listen"] ?? process.env.TALLYCRAFT_ALSO_LISTEN ?? "",
+  )
+    .split(",")
+    .map((value) => Number(value.trim()))
+    .filter((value) => Number.isInteger(value) && value > 0 && value !== port);
+
   const server = createAppServer({
     dbPath,
     publicDir,
@@ -193,7 +200,7 @@ async function commandServe(flags) {
     }
     throw error;
   });
-  server.listen(port, host, () => {
+  server.listenAll(port, host, alsoListen).then((bound) => {
     watchParent(server);
     const info = identity();
     console.log(`TallyCraft listening on http://${host}:${port}`);
@@ -211,6 +218,12 @@ async function commandServe(flags) {
     } catch (error) {
       console.log(
         `warning: could not write .runtime/preview.json (${error.message})`,
+      );
+    }
+    for (const alias of bound.aliases) {
+      const aliasUrl = previewUrlFor(alias, process.env.E2B_SANDBOX_ID);
+      console.log(
+        `Alias: http://${host}:${alias}${aliasUrl === null ? "" : `  ${aliasUrl}`}`,
       );
     }
   });

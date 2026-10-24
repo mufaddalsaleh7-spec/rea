@@ -107,11 +107,12 @@ export async function resolvePort(
 }
 
 class Supervisor {
-  constructor({ port, host, demo }) {
+  constructor({ port, host, demo, aliases }) {
     this.requestedPort = port;
     this.port = port;
     this.host = host;
     this.demo = demo;
+    this.aliases = aliases;
     this.child = null;
     this.restarts = [];
     this.healthyFailures = 0;
@@ -192,6 +193,8 @@ class Supervisor {
       String(process.pid),
     ];
     if (this.demo) args.push("--demo");
+    if (this.aliases.length > 0)
+      args.push("--also-listen", this.aliases.join(","));
 
     log(`starting ${args.join(" ")}`);
     const child = spawn(process.execPath, args, {
@@ -306,13 +309,21 @@ async function main() {
   const port = Number(flags.port ?? process.env.PORT ?? 3000);
   const host = String(flags.host ?? process.env.HOST ?? "0.0.0.0");
   const demo = flags.demo === true || process.env.TALLYCRAFT_DEMO === "1";
+  // Conventional development ports, so a proxy targeting any of them still
+  // reaches this instance. Override with --aliases 8080,5173.
+  const aliases = String(
+    flags.aliases ?? process.env.TALLYCRAFT_ALIASES ?? "8080,5173,4000",
+  )
+    .split(",")
+    .map((value) => Number(value.trim()))
+    .filter((value) => Number.isInteger(value) && value > 0 && value !== port);
 
   if (!Number.isInteger(port) || port < 1 || port > 65_535) {
     console.error(`invalid port: ${flags.port}`);
     process.exit(2);
   }
 
-  const supervisor = new Supervisor({ port, host, demo });
+  const supervisor = new Supervisor({ port, host, demo, aliases });
   for (const signal of ["SIGINT", "SIGTERM"]) {
     process.on(signal, () => void supervisor.stop(signal));
   }

@@ -255,13 +255,14 @@ tallycraft/
 
 ## Operations
 
-| Command             | Purpose                                                           |
-| ------------------- | ----------------------------------------------------------------- |
-| `npm run check`     | Report drift (git, deps, build, agents) without changing anything |
-| `npm run up`        | Repair drift, then serve under the supervisor                     |
-| `npm run preview`   | Start/verify the supervised preview on port 3000                  |
-| `npm run bootstrap` | Repair only, no server                                            |
-| `npm run snapshot`  | Rebuild the offline `public/snapshot.html`                        |
+| Command               | Purpose                                                           |
+| --------------------- | ----------------------------------------------------------------- |
+| `npm run check`       | Report drift (git, deps, build, agents) without changing anything |
+| `npm run up`          | Repair drift, then serve under the supervisor                     |
+| `npm run preview`     | Start/verify the supervised preview on port 3000                  |
+| `--aliases 8080,5173` | Extra ports that answer the same app (default `8080,5173,4000`)   |
+| `npm run bootstrap`   | Repair only, no server                                            |
+| `npm run snapshot`    | Rebuild the offline `public/snapshot.html`                        |
 
 Supervisor guarantees, each covered by a test or a recorded manual check:
 

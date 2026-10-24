@@ -53,13 +53,66 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 
+/**
+ * Boot payload inlined by the server into index.html.
+ *
+ * A preview proxy can block or rewrite `/api/*` while still serving the shell.
+ * When that happens the first paint must still show the real ledger, so these
+ * responses double as a fallback for read-only screens.
+ */
+const BOOT = (() => {
+  const node = document.getElementById("tallycraft-boot");
+  if (node === null) return {};
+  try {
+    return JSON.parse(node.textContent ?? "{}");
+  } catch {
+    return {};
+  }
+})();
+
+/**
+ * Reveal the "offline copy" badge.
+ *
+ * It only appears once a request has actually fallen back, so a healthy
+ * session never claims to be running from the inlined copy.
+ */
+let bootModeShown = false;
+function markBootMode() {
+  if (bootModeShown) return;
+  bootModeShown = true;
+  const note = document.getElementById("tallycraft-boot-mode");
+  if (note !== null) note.hidden = false;
+}
+
+/** Fallback for a read request, or null when nothing was inlined for it. */
+function bootFallback(path) {
+  if (BOOT[path] === undefined) return null;
+  markBootMode();
+  return structuredClone(BOOT[path]);
+}
+
 async function api(path, options = {}) {
-  const response = await fetch(path, {
-    headers: { "content-type": "application/json", ...options.headers },
-    ...options,
-  });
+  const method = (options.method ?? "GET").toUpperCase();
+  const isRead = method === "GET" || method === "HEAD";
+
+  let response;
+  try {
+    response = await fetch(path, {
+      headers: { "content-type": "application/json", ...options.headers },
+      ...options,
+    });
+  } catch (error) {
+    // Network failure (proxy blocked, offline): serve the inlined copy.
+    const fallback = isRead ? bootFallback(path) : null;
+    if (fallback !== null) return fallback;
+    throw error;
+  }
+
   const contentType = response.headers.get("content-type") ?? "";
   if (!response.ok) {
+    const fallback =
+      isRead && response.status >= 500 ? bootFallback(path) : null;
+    if (fallback !== null) return fallback;
     let message = `${response.status} ${response.statusText}`;
     if (contentType.includes("application/json")) {
       const body = await response.json().catch(() => null);

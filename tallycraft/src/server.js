@@ -16,7 +16,7 @@ import {
   UNITS,
   VOUCHER_TYPES,
 } from "./catalog.js";
-import { instanceInfo } from "./instance.js";
+import { instanceInfo, previewUrlFor } from "./instance.js";
 import { seed } from "./seed.js";
 
 const MIME_TYPES = new Map([
@@ -107,6 +107,36 @@ function textParam(params, key, fallback = null) {
   return raw === null || raw === "" ? fallback : raw;
 }
 
+/**
+ * First-paint data written into the HTML.
+ *
+ * The client prefers the live API, but a proxy that blocks or rewrites `/api/*`
+ * would otherwise leave a blank page. Inlining the same payload lets the shell
+ * render the real book on first paint and fall back to it if fetches fail.
+ */
+function bootPayload(app) {
+  return {
+    "/api/catalog": {
+      groups: app.listGroups(),
+      primaryGroups: PRIMARY_GROUP_NAMES,
+      voucherTypes: VOUCHER_TYPES,
+      units: UNITS,
+      gstRates: GST_RATES,
+    },
+    "/api/company": app.getCompany(),
+    "/api/statistics": app.statistics(),
+    "/api/vouchers?limit=7": { vouchers: app.listVouchers({ limit: 7 }) },
+    "/api/ledgers": { ledgers: app.listLedgers() },
+  };
+}
+
+function injectBootData(html, app) {
+  if (!html.includes("</head>")) return html;
+  const payload = JSON.stringify(bootPayload(app)).replaceAll("</", "<\\/");
+  const tag = `<script id="tallycraft-boot" type="application/json">${payload}</script>`;
+  return html.replace("</head>", `${tag}\n  </head>`);
+}
+
 export function createAppServer({
   dbPath,
   publicDir,
@@ -173,7 +203,10 @@ export function createAppServer({
         return;
       }
     }
-    const body = await readFile(filePath);
+    let body = await readFile(filePath);
+    if (extname(filePath) === ".html") {
+      body = Buffer.from(injectBootData(body.toString("utf8"), app), "utf8");
+    }
     response.writeHead(200, {
       "content-type":
         MIME_TYPES.get(extname(filePath)) ?? "application/octet-stream",
@@ -188,15 +221,30 @@ export function createAppServer({
 
     if (path === "/api/instance") {
       // Readiness contract: who am I, which port, which preview URL, how long.
-      sendJson(
-        response,
-        200,
+      const info =
         instance === null
           ? instanceInfo({ port: 0 })
           : typeof instance === "function"
             ? instance()
-            : instance,
-      );
+            : instance;
+      // The same process answers on several ports. Report the one this
+      // request arrived on, so every alias states its own preview URL. The
+      // primary keeps the configured identity even when it was bound on an
+      // ephemeral port.
+      const localPort = request.socket.localPort;
+      const isAlias =
+        Number.isInteger(localPort) &&
+        localPort !== (server.boundPort ?? info.port);
+      const reported = isAlias
+        ? {
+            ...info,
+            port: localPort,
+            localUrl: `http://127.0.0.1:${localPort}`,
+            previewUrl: previewUrlFor(localPort, info.sandboxId ?? undefined),
+            aliasOf: info.port,
+          }
+        : info;
+      sendJson(response, 200, reported);
       return;
     }
 
@@ -437,7 +485,7 @@ export function createAppServer({
     });
   };
 
-  const server = createHttpServer(async (request, response) => {
+  const handler = async (request, response) => {
     const startedAt = Date.now();
     response.on("finish", () => recordRequest(request, response, startedAt));
     const url = new URL(
@@ -479,8 +527,67 @@ export function createAppServer({
     } catch (error) {
       sendError(response, error);
     }
-  });
+  };
 
-  server.on("close", () => app.close());
+  const server = createHttpServer(handler);
+  server.requestHandler = handler;
+  server.extraServers = [];
+
+  /**
+   * Listen on the primary port, plus optional aliases.
+   *
+   * A preview proxy may target a conventional development port rather than the
+   * one we picked. Serving the same handler on several ports removes that
+   * assumption: whichever port the proxy dials, it reaches this instance and
+   * the same ledger. Aliases are best effort — a taken alias is skipped, never
+   * fatal.
+   */
+  server.listenAll = async (port, host = "0.0.0.0", extraPorts = []) => {
+    const primary = new Promise((resolve, reject) => {
+      const onError = (error) => reject(error);
+      server.once("error", onError);
+      server.listen(port, host, () => {
+        server.removeListener("error", onError);
+        resolve(server.address().port);
+      });
+    });
+    const wanted = [
+      ...new Set(
+        extraPorts.filter(
+          (extra) => Number.isInteger(extra) && extra >= 0 && extra !== port,
+        ),
+      ),
+    ];
+    const aliases = wanted.map(
+      (extra) =>
+        new Promise((resolve) => {
+          const alias = createHttpServer(handler);
+          alias.on("error", () => resolve(null));
+          alias.listen(extra, host, () => {
+            server.extraServers.push(alias);
+            resolve(alias.address().port);
+          });
+        }),
+    );
+    const [primaryPort, ...aliasPorts] = await Promise.all([
+      primary,
+      ...aliases,
+    ]);
+    server.boundPort = primaryPort;
+    const bound = aliasPorts.filter((value) => value !== null);
+    return {
+      port: primaryPort,
+      aliases: bound,
+      // Requested aliases that were already busy: the instance stays up, it
+      // just answers on fewer ports. Never fatal, never silent.
+      skipped: wanted.filter((extra, index) => aliasPorts[index] === null),
+    };
+  };
+
+  server.on("close", () => {
+    for (const alias of server.extraServers) alias.close();
+    // A server can be constructed without a database (health probes, tests).
+    if (app) app.close();
+  });
   return server;
 }

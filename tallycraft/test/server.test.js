@@ -170,3 +170,122 @@ test("Tally XML exports over HTTP", async () => {
   const xml = await response.text();
   assert.match(xml, /<VOUCHER VCHTYPE="Receipt"/);
 });
+
+test("the shell carries first-paint boot data", async () => {
+  const response = await fetch(`${base}/`);
+  const html = await response.text();
+  assert.match(html, /id="tallycraft-boot"/);
+  const match =
+    /<script id="tallycraft-boot" type="application\/json">([\s\S]*?)<\/script>/.exec(
+      html,
+    );
+  assert.ok(match, "boot script missing");
+  const payload = JSON.parse(match[1].replaceAll("<\\/", "</"));
+  assert.equal(payload["/api/company"].name, "Surat Weaves Pvt Ltd");
+  assert.ok(payload["/api/catalog"].voucherTypes.length >= 8);
+  assert.ok(payload["/api/statistics"].counts.vouchers > 0);
+  assert.equal(payload["/api/vouchers?limit=7"].vouchers.length, 7);
+});
+
+test("boot data matches what the live API returns", async () => {
+  const html = await fetch(`${base}/`).then((response) => response.text());
+  const match =
+    /<script id="tallycraft-boot" type="application\/json">([\s\S]*?)<\/script>/.exec(
+      html,
+    );
+  const payload = JSON.parse(match[1].replaceAll("<\\/", "</"));
+
+  const company = await fetch(`${base}/api/company`).then((response) =>
+    response.json(),
+  );
+  assert.deepEqual(payload["/api/company"], company);
+
+  const ledgers = await fetch(`${base}/api/ledgers`).then((response) =>
+    response.json(),
+  );
+  assert.equal(payload["/api/ledgers"].ledgers.length, ledgers.ledgers.length);
+
+  const statistics = await fetch(`${base}/api/statistics`).then((response) =>
+    response.json(),
+  );
+  assert.equal(
+    payload["/api/statistics"].counts.ledgers,
+    statistics.counts.ledgers,
+  );
+  assert.equal(payload["/api/statistics"].netProfit, statistics.netProfit);
+});
+
+test("listenAll binds the primary port and skips aliases that are taken", async () => {
+  const { createAppServer } = await import("../src/server.js");
+  const extra = createAppServer({ publicDir, app: null, instance: () => ({}) });
+  await new Promise((done) => extra.listen(0, "127.0.0.1", done));
+  const takenPort = extra.address().port;
+
+  const probe = createAppServer({ publicDir, app: null, instance: () => ({}) });
+  await new Promise((done) => probe.listen(0, "127.0.0.1", done));
+  const freePort = probe.address().port;
+  await new Promise((done) => probe.close(done));
+
+  const primary = createAppServer({
+    publicDir,
+    app: null,
+    instance: () => ({}),
+  });
+  const bound = await primary.listenAll(0, "127.0.0.1", [takenPort, freePort]);
+  assert.ok(bound.port > 0);
+  assert.deepEqual(bound.aliases, [freePort], "the free alias should bind");
+  assert.deepEqual(
+    bound.skipped,
+    [takenPort],
+    "the taken port should be skipped",
+  );
+
+  primary.closeAllConnections();
+  extra.closeAllConnections();
+  await new Promise((done) => primary.close(done));
+  await new Promise((done) => extra.close(done));
+});
+
+test("an alias port reports itself in /api/instance", async () => {
+  const probe = createAppServer({ publicDir, app: null, instance: () => ({}) });
+  await new Promise((done) => probe.listen(0, "127.0.0.1", done));
+  const aliasPort = probe.address().port;
+  await new Promise((done) => probe.close(done));
+
+  const serverInstance = createAppServer({
+    publicDir,
+    app: null,
+    instance: () => ({
+      port: 3000,
+      sandboxId: "sandbox123",
+      previewUrl: "https://3000-sandbox123.e2b.app",
+    }),
+  });
+  const bound = await serverInstance.listenAll(0, "127.0.0.1", [aliasPort]);
+  assert.deepEqual(bound.aliases, [aliasPort]);
+
+  const aliasInfo = await fetch(
+    `http://127.0.0.1:${aliasPort}/api/instance`,
+  ).then((response) => response.json());
+  assert.equal(aliasInfo.port, aliasPort);
+  assert.equal(
+    aliasInfo.aliasOf,
+    3000,
+    "the alias names the configured identity",
+  );
+  assert.equal(aliasInfo.previewUrl, `https://${aliasPort}-sandbox123.e2b.app`);
+
+  const primaryInfo = await fetch(
+    `http://127.0.0.1:${bound.port}/api/instance`,
+  ).then((response) => response.json());
+  assert.equal(
+    primaryInfo.port,
+    3000,
+    "the primary keeps its configured identity",
+  );
+  assert.equal(primaryInfo.aliasOf, undefined);
+
+  serverInstance.closeAllConnections();
+  for (const alias of serverInstance.extraServers) alias.closeAllConnections();
+  await new Promise((done) => serverInstance.close(done));
+});
