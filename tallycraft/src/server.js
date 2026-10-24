@@ -395,6 +395,15 @@ export function createAppServer({
       `http://${request.headers.host ?? "localhost"}`,
     );
     try {
+      // Plain-text liveness probe for proxies, containers and uptime checks.
+      if (url.pathname === "/healthz") {
+        response.writeHead(200, {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store",
+        });
+        response.end(request.method === "HEAD" ? undefined : "ok");
+        return;
+      }
       if (url.pathname.startsWith("/api/")) {
         await handleApi(
           request,
