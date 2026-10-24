@@ -20,6 +20,17 @@ open-source vector engine:
 **Permanent link (no sandbox, no server):**
 <https://mufaddalsaleh7-spec.github.io/rea/vectorstudio.html>
 
+That address is served by GitHub Pages from `.github/workflows/vectorstudio-pages.yml`.
+Enable it once: **Settings → Pages → Build and deployment → Source: GitHub
+Actions**. Every push that touches `vectorstudio.html` or `index.html` then
+republishes automatically, and the link never depends on a development sandbox,
+a preview proxy or a running process.
+
+> Sandbox preview URLs (`https://<port>-<sandbox-id>.e2b.app`) are scoped to one
+> ephemeral sandbox. When that sandbox pauses, resumes under a different
+> binding, or is replaced, the proxy answers `502 Sandbox not found`. Use the
+> Pages link or the downloaded file for anything you want to keep.
+
 That file — `vectorstudio.html` — is a single self-contained HTML document with
 the stylesheet and every module inlined. Download it and double-click; it runs
 offline from `file://`.

@@ -1,0 +1,61 @@
+name: VectorStudio Pages
+
+# Publishes the single-file VectorStudio edition to GitHub Pages so the
+# workspace has a stable URL that does not depend on any sandbox or preview
+# process. Enable once: Settings -> Pages -> Build and deployment ->
+# Source: "GitHub Actions".
+
+on:
+  push:
+    branches:
+      - main
+      - arena/4e0619f6-rea
+    paths:
+      - vectorstudio.html
+      - index.html
+      - .github/workflows/vectorstudio-pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: vectorstudio-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Assemble site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Assemble static site
+        run: |
+          set -eu
+          test -f vectorstudio.html
+          test -f index.html
+          mkdir -p _site
+          cp index.html vectorstudio.html _site/
+          printf 'User-agent: *\nAllow: /\n' > _site/robots.txt
+          ls -l _site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
