@@ -15,9 +15,18 @@ open-source vector engine:
   two-column tool well, panel dock, rulers, smart guides and the
   selection/scale/rotate chrome.
 
-## Run it
+## Open it
 
-No build step, no dependencies:
+**Permanent link (no sandbox, no server):**
+<https://mufaddalsaleh7-spec.github.io/rea/vectorstudio.html>
+
+That file — `vectorstudio.html` — is a single self-contained HTML document with
+the stylesheet and every module inlined. Download it and double-click; it runs
+offline from `file://`.
+
+## Run from source
+
+The app has no dependencies and no build step:
 
 ```sh
 cd apps/vectorstudio
@@ -25,8 +34,19 @@ python3 -m http.server 4173 --bind 0.0.0.0
 # open http://127.0.0.1:4173/
 ```
 
-Any static file server works. Opening `index.html` over `file://` also loads,
-but ES modules are safest over HTTP.
+Any static file server works, including a sandbox or container preview.
+
+## Rebuild the single-file edition
+
+`vectorstudio.html` is generated; edit the sources, then:
+
+```sh
+cd apps/vectorstudio
+node build-standalone.mjs      # uses `npx esbuild` once, then inlines everything
+```
+
+Copy the result to the repository root to update the published page
+(`cp vectorstudio.html ../../vectorstudio.html`).
 
 ## What works
 
