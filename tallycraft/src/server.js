@@ -110,8 +110,40 @@ export function createAppServer({
   dbPath,
   publicDir,
   app = TallyCraft.open(dbPath),
+  logRequests = true,
+  log = (line) => process.stdout.write(`${line}\n`),
 }) {
   const root = resolve(publicDir);
+
+  /**
+   * One access line per request, recording whether a proxy forwarded it.
+   *
+   * When a preview panel reports "unavailable", this line answers the first
+   * question: did the request reach the sandbox at all? No line means the
+   * failure is upstream of this process.
+   */
+  const recordRequest = (request, response, startedAt) => {
+    if (!logRequests) return;
+    const forwarded = [
+      "x-forwarded-for",
+      "x-forwarded-host",
+      "forwarded",
+      "x-real-ip",
+    ].filter((header) => request.headers[header] !== undefined);
+    const path = (request.url ?? "/").split("?")[0];
+    log(
+      [
+        "req",
+        request.method ?? "GET",
+        path,
+        response.statusCode,
+        `${Date.now() - startedAt}ms`,
+        `host=${request.headers.host ?? "-"}`,
+        `via=${forwarded.length === 0 ? "direct" : forwarded.join(",")}`,
+        `ip=${request.socket.remoteAddress ?? "-"}`,
+      ].join(" "),
+    );
+  };
 
   const serveStatic = async (response, pathname) => {
     const relative = normalize(decodeURIComponent(pathname)).replace(
@@ -390,6 +422,8 @@ export function createAppServer({
   };
 
   const server = createHttpServer(async (request, response) => {
+    const startedAt = Date.now();
+    response.on("finish", () => recordRequest(request, response, startedAt));
     const url = new URL(
       request.url ?? "/",
       `http://${request.headers.host ?? "localhost"}`,

@@ -22,7 +22,7 @@ before(async () => {
   const dbPath = join(directory, "test.db");
   const app = TallyCraft.open(dbPath);
   seed(app);
-  server = createAppServer({ dbPath, publicDir, app });
+  server = createAppServer({ dbPath, publicDir, app, logRequests: false });
   await new Promise((ready) => server.listen(0, "127.0.0.1", ready));
   base = `http://127.0.0.1:${server.address().port}`;
 });
