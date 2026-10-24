@@ -15,7 +15,8 @@
     "serve": "node --disable-warning=ExperimentalWarning bin/tallycraft.js serve",
     "seed": "node --disable-warning=ExperimentalWarning bin/tallycraft.js seed",
     "export": "node --disable-warning=ExperimentalWarning bin/tallycraft.js export",
-    "test": "node --disable-warning=ExperimentalWarning --test test/"
+    "test": "node --disable-warning=ExperimentalWarning --test test/",
+    "snapshot": "node scripts/snapshot.mjs"
   },
   "license": "MIT"
 }

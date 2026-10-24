@@ -112,9 +112,23 @@ async function commandServe(flags) {
     }
   }
   const server = createAppServer({ dbPath, publicDir, app });
+  server.on("error", (error) => {
+    if (error.code === "EADDRINUSE") {
+      console.error(
+        `Port ${port} is already in use. Start with --port <free port>.`,
+      );
+      process.exit(1);
+    }
+    throw error;
+  });
   server.listen(port, host, () => {
     console.log(`TallyCraft listening on http://${host}:${port}`);
     console.log(`Database: ${dbPath}`);
+    const sandbox = process.env.E2B_SANDBOX_ID;
+    if (sandbox !== undefined) {
+      // Printed so an operator can open the proxied preview or share it.
+      console.log(`Preview: https://${port}-${sandbox}.e2b.app`);
+    }
   });
   for (const signal of ["SIGINT", "SIGTERM"]) {
     process.on(signal, () => {

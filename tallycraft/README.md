@@ -11,7 +11,7 @@ The ledger lives in SQLite through Node's built-in `node:sqlite`.
 ```bash
 cd tallycraft
 npm start          # http://localhost:4310 with the demo company loaded
-npm test           # 27 tests: accounting invariants, import/export, HTTP surface
+npm test           # 30 tests: accounting invariants, import/export, snapshot, HTTP
 ```
 
 ```
@@ -77,6 +77,17 @@ Environment:
 The server binds to `0.0.0.0`, so it can be opened from another machine or a
 preview proxy.
 
+### Two ways to open it
+
+|              | How                                                              | What you get                                                        |
+| ------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Live**     | `npm start` → http://localhost:4310 (or the chat's live preview) | Full read-write book: post vouchers, create ledgers, import XML     |
+| **Snapshot** | open `public/snapshot.html` (also served at `/snapshot.html`)    | The same screens over a frozen copy of the book, no server required |
+
+The snapshot inlines the API responses (`npm run snapshot`) and swaps `fetch`
+for a lookup table, so one 168 KB HTML file renders real reports offline. It is
+read-only by design; posting is disabled.
+
 ## Screens
 
 - **Gateway** — cash & bank, receivables, payables, net profit, recent vouchers.
@@ -111,6 +122,7 @@ node bin/tallycraft.js voucher add --type Receipt --date 2026-10-24 \
   --dr "HDFC Bank - Current A/c:25000" --cr "Ravi Textiles:25000"
 node bin/tallycraft.js export --out book.xml
 node bin/tallycraft.js import book.xml --dry-run
+npm run snapshot                                        # rebuild public/snapshot.html
 ```
 
 `--json` on any report prints the exact object the browser client renders.
@@ -120,6 +132,7 @@ node bin/tallycraft.js import book.xml --dry-run
 | Method       | Path                                           | Purpose                                  |
 | ------------ | ---------------------------------------------- | ---------------------------------------- |
 | GET          | `/healthz`                                     | Plain-text liveness probe (`ok`)         |
+| GET          | `/snapshot.html`                               | Offline, read-only copy of the client    |
 | GET          | `/api/health`                                  | Liveness plus company statistics         |
 | GET          | `/api/catalog`                                 | Groups, voucher types, units, GST rates  |
 | GET          | `/api/company`                                 | Company profile and financial year       |
@@ -192,6 +205,7 @@ tallycraft/
   src/xml.js             strict small XML reader for Tally envelopes
   src/server.js          JSON API + static client
   src/seed.js            deterministic demo book (Surat Weaves Pvt Ltd)
+  scripts/snapshot.mjs   builds public/snapshot.html from the live service
   public/                index.html, styles.css, app.js (no build step)
   test/                  accounting invariants + HTTP boundary
   docs/                  reconstruction evidence, design notes
@@ -218,14 +232,15 @@ tallycraft/
 npm test
 ```
 
-27 tests cover: catalog shape, money parsing and Indian grouping, seeded
+30 tests cover: catalog shape, money parsing and Indian grouping, seeded
 balance, balance-sheet identity on four dates, per-voucher balance, rejection
 paths (unbalanced, too few lines, outside FY, reserved group, unknown ledger,
 duplicate number), numbering, warnings, ledger reconciliation, day-book totals,
 outstanding ageing versus the debtors statistic, inventory valuation, P&L
 sections, XML round-trip, dry-run rollback, master guards, and the HTTP surface
 including static-path traversal, plus a check that a dry-run import reports
-exactly what the real import would do.
+exactly what the real import would do, and that a generated snapshot inlines
+every response the client asks for.
 
 ## Licence
 
