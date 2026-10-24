@@ -16,6 +16,7 @@ import {
   UNITS,
   VOUCHER_TYPES,
 } from "./catalog.js";
+import { instanceInfo } from "./instance.js";
 import { seed } from "./seed.js";
 
 const MIME_TYPES = new Map([
@@ -110,6 +111,7 @@ export function createAppServer({
   dbPath,
   publicDir,
   app = TallyCraft.open(dbPath),
+  instance = null,
   logRequests = true,
   log = (line) => process.stdout.write(`${line}\n`),
 }) {
@@ -183,6 +185,20 @@ export function createAppServer({
 
   const handleApi = async (request, response, path, params) => {
     const method = request.method ?? "GET";
+
+    if (path === "/api/instance") {
+      // Readiness contract: who am I, which port, which preview URL, how long.
+      sendJson(
+        response,
+        200,
+        instance === null
+          ? instanceInfo({ port: 0 })
+          : typeof instance === "function"
+            ? instance()
+            : instance,
+      );
+      return;
+    }
 
     if (path === "/api/health") {
       const statistics = (() => {

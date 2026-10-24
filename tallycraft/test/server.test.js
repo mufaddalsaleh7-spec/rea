@@ -7,6 +7,7 @@ import { after, before, test } from "node:test";
 import { TallyCraft } from "../src/app.js";
 import { seed } from "../src/seed.js";
 import { createAppServer } from "../src/server.js";
+import { instanceInfo } from "../src/instance.js";
 
 const publicDir = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -22,7 +23,22 @@ before(async () => {
   const dbPath = join(directory, "test.db");
   const app = TallyCraft.open(dbPath);
   seed(app);
-  server = createAppServer({ dbPath, publicDir, app, logRequests: false });
+  const startedAt = new Date();
+  server = createAppServer({
+    dbPath,
+    publicDir,
+    app,
+    logRequests: false,
+    // Same wiring the CLI uses: identity is resolved per request from the live
+    // port, so the advertised URL always matches where the socket listens.
+    instance: () =>
+      instanceInfo({
+        port: server.address()?.port ?? 0,
+        sandboxId: undefined,
+        startedAt,
+        dbPath,
+      }),
+  });
   await new Promise((ready) => server.listen(0, "127.0.0.1", ready));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -30,6 +46,18 @@ before(async () => {
 after(async () => {
   await new Promise((done) => server.close(done));
   await rm(directory, { recursive: true, force: true });
+});
+
+test("the instance endpoint publishes where this server lives", async () => {
+  const instance = await fetch(`${base}/api/instance`).then((response) =>
+    response.json(),
+  );
+  assert.equal(instance.service, "tallycraft");
+  assert.equal(instance.status, "ok");
+  assert.equal(instance.previewUrl, null, "no sandbox id in tests");
+  assert.ok(instance.port > 0);
+  assert.ok(instance.startedAt);
+  assert.equal(typeof instance.uptimeSeconds, "number");
 });
 
 test("health and company endpoints answer", async () => {

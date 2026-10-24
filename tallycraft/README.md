@@ -10,8 +10,8 @@ The ledger lives in SQLite through Node's built-in `node:sqlite`.
 
 ```bash
 cd tallycraft
-npm start          # http://localhost:4310 with the demo company loaded
-npm test           # 30 tests: accounting invariants, import/export, snapshot, HTTP
+npm run up         # bootstrap + supervised preview on http://localhost:3000
+npm test           # 39 tests: accounting, import/export, snapshot, supervisor, HTTP
 ```
 
 ```
@@ -76,6 +76,30 @@ Environment:
 
 The server binds to `0.0.0.0`, so it can be opened from another machine or a
 preview proxy.
+
+### Bring it up in one command
+
+A sandbox is recycled between sessions and comes back with a new hostname, an
+empty `$HOME` and the base commit checked out. `npm run up` repairs all of that
+idempotently and starts a supervised server:
+
+```bash
+npm run check   # diagnosis only, changes nothing
+npm run up      # repair drifted state, then serve under supervision
+```
+
+The server publishes its own identity, including the preview URL, so nothing has
+to be guessed:
+
+```bash
+curl -s localhost:3000/api/instance
+# { "service": "tallycraft", "status": "ok", "port": 3000,
+#   "previewUrl": "https://3000-<sandbox>.e2b.app", "git": { ... }, ... }
+```
+
+The supervisor reuses or skips a held port, restarts on crash with backoff,
+restarts on hang after three failed probes, and refuses to double-bind. See
+[docs/RUNBOOK.md](docs/RUNBOOK.md) for the failure model and incident record.
 
 ### Two ways to open it
 
@@ -204,8 +228,11 @@ tallycraft/
   src/app.js             service layer: masters, vouchers, reports, XML
   src/xml.js             strict small XML reader for Tally envelopes
   src/server.js          JSON API + static client
+  src/instance.js        run identity and preview-URL derivation
   src/seed.js            deterministic demo book (Surat Weaves Pvt Ltd)
   scripts/snapshot.mjs   builds public/snapshot.html from the live service
+  scripts/serve.mjs      supervisor: port resolution, restart, watchdog, discovery
+  scripts/bootstrap.mjs  idempotent bring-up for a recycled sandbox
   public/                index.html, styles.css, app.js (no build step)
   test/                  accounting invariants + HTTP boundary
   docs/                  reconstruction evidence, design notes
@@ -226,13 +253,32 @@ tallycraft/
 5. **No silent correction.** Unusual but legal vouchers earn warnings, not
    blocks; malformed XML fails loudly with a tagged error.
 
+## Operations
+
+| Command             | Purpose                                                           |
+| ------------------- | ----------------------------------------------------------------- |
+| `npm run check`     | Report drift (git, deps, build, agents) without changing anything |
+| `npm run up`        | Repair drift, then serve under the supervisor                     |
+| `npm run preview`   | Start/verify the supervised preview on port 3000                  |
+| `npm run bootstrap` | Repair only, no server                                            |
+| `npm run snapshot`  | Rebuild the offline `public/snapshot.html`                        |
+
+Supervisor guarantees, each covered by a test or a recorded manual check:
+
+- reuses its own listener, skips a foreign one, never binds over a stranger
+- second start prints `already running` and exits 0
+- crash restart with exponential backoff, bounded to avoid crash loops
+- hang watchdog restarts after three consecutive failed health probes
+- `SIGKILL` of the supervisor cannot orphan the server: the child watches its
+  parent and exits, releasing the port within ~2 s
+
 ## Verification
 
 ```bash
 npm test
 ```
 
-30 tests cover: catalog shape, money parsing and Indian grouping, seeded
+39 tests cover: catalog shape, money parsing and Indian grouping, seeded
 balance, balance-sheet identity on four dates, per-voucher balance, rejection
 paths (unbalanced, too few lines, outside FY, reserved group, unknown ledger,
 duplicate number), numbering, warnings, ledger reconciliation, day-book totals,
@@ -240,7 +286,8 @@ outstanding ageing versus the debtors statistic, inventory valuation, P&L
 sections, XML round-trip, dry-run rollback, master guards, and the HTTP surface
 including static-path traversal, plus a check that a dry-run import reports
 exactly what the real import would do, and that a generated snapshot inlines
-every response the client asks for.
+every response the client asks for, plus the supervisor's port resolution
+(reuse, skip, exhaust), instance identity, and the readiness contract.
 
 ## Licence
 

@@ -6,3 +6,6 @@ data/
 
 # Editor and OS noise
 .DS_Store
+
+# Supervisor and instance discovery state (machine-written, never committed)
+.runtime/

@@ -13,6 +13,9 @@ import { formatPaise } from "../src/money.js";
 import { TallyCraft, TallyCraftError } from "../src/app.js";
 import { seed } from "../src/seed.js";
 import { createAppServer } from "../src/server.js";
+import { instanceInfo } from "../src/instance.js";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { VOUCHER_TYPES } from "../src/catalog.js";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -93,6 +96,29 @@ function money(value) {
   return formatPaise(Math.round(Number(value) * 100));
 }
 
+/** Read the checked-out branch and commit once at startup. */
+function gitIdentity() {
+  try {
+    const dir = resolve(projectRoot, "..");
+    return {
+      branch: execFileSync(
+        "git",
+        ["-C", dir, "rev-parse", "--abbrev-ref", "HEAD"],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+        },
+      ).trim(),
+      commit: execFileSync("git", ["-C", dir, "rev-parse", "--short", "HEAD"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim(),
+    };
+  } catch {
+    return { branch: null, commit: null };
+  }
+}
+
 async function commandServe(flags) {
   const port = Number(flags.port ?? process.env.PORT ?? 4310);
   const host = String(flags.host ?? process.env.HOST ?? "0.0.0.0");
@@ -111,7 +137,53 @@ async function commandServe(flags) {
       );
     }
   }
-  const server = createAppServer({ dbPath, publicDir, app });
+  const startedAt = new Date();
+  const identity = () =>
+    instanceInfo({
+      port,
+      host,
+      sandboxId: process.env.E2B_SANDBOX_ID,
+      startedAt,
+      pid: process.pid,
+      dbPath,
+      ...gitIdentity(),
+      supervisorPid: process.ppid ?? null,
+    });
+
+  // Orphan guard: if the supervisor is killed outright (SIGKILL, EPIPE from a
+  // closed log pipe), no signal handler runs for it. The server therefore
+  // watches its parent and exits when it disappears, so the port is never held
+  // by a process nobody owns.
+  const parentPid = Number(
+    flags["parent-pid"] ?? process.env.TALLYCRAFT_PARENT_PID ?? 0,
+  );
+  const watchParent = (server) => {
+    if (
+      !Number.isInteger(parentPid) ||
+      parentPid <= 0 ||
+      parentPid === process.pid
+    )
+      return;
+    const timer = setInterval(() => {
+      try {
+        process.kill(parentPid, 0);
+      } catch {
+        console.log(
+          `parent ${parentPid} is gone; shutting down to release port ${port}`,
+        );
+        server.close(() => process.exit(0));
+        setTimeout(() => process.exit(0), 2_000).unref();
+      }
+    }, 2_000);
+    timer.unref();
+  };
+
+  const server = createAppServer({
+    dbPath,
+    publicDir,
+    app,
+    instance: identity,
+  });
   server.on("error", (error) => {
     if (error.code === "EADDRINUSE") {
       console.error(
@@ -122,12 +194,24 @@ async function commandServe(flags) {
     throw error;
   });
   server.listen(port, host, () => {
+    watchParent(server);
+    const info = identity();
     console.log(`TallyCraft listening on http://${host}:${port}`);
     console.log(`Database: ${dbPath}`);
-    const sandbox = process.env.E2B_SANDBOX_ID;
-    if (sandbox !== undefined) {
-      // Printed so an operator can open the proxied preview or share it.
-      console.log(`Preview: https://${port}-${sandbox}.e2b.app`);
+    if (info.previewUrl !== null) console.log(`Preview: ${info.previewUrl}`);
+    // Advertise the resolved instance so a supervisor or an operator can find
+    // this exact process without scanning ports.
+    try {
+      const runtimeDir = resolve(projectRoot, ".runtime");
+      mkdirSync(runtimeDir, { recursive: true });
+      writeFileSync(
+        resolve(runtimeDir, "preview.json"),
+        `${JSON.stringify(info, null, 2)}\n`,
+      );
+    } catch (error) {
+      console.log(
+        `warning: could not write .runtime/preview.json (${error.message})`,
+      );
     }
   });
   for (const signal of ["SIGINT", "SIGTERM"]) {
