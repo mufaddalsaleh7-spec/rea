@@ -21,6 +21,7 @@
 
 #if defined(__unix__) || defined(__APPLE__)
 #include <arpa/inet.h>
+#include <csignal>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
@@ -394,7 +395,21 @@ std::string url_decode(const std::string& in) {
   return out;
 }
 
+// A browser that navigates away closes the socket mid-frame. That must never
+// take the desktop down, so SIGPIPE is ignored and sends use MSG_NOSIGNAL.
+int send_all(int fd, const void* data, size_t size) {
+  const auto* bytes = static_cast<const unsigned char*>(data);
+  size_t sent = 0;
+  while (sent < size) {
+    const ssize_t n = send(fd, bytes + sent, size - sent, MSG_NOSIGNAL);
+    if (n <= 0) return -1;
+    sent += static_cast<size_t>(n);
+  }
+  return 0;
+}
+
 int run_server(Shell& shell, const Options& opt) {
+  std::signal(SIGPIPE, SIG_IGN);
   const int server = socket(AF_INET, SOCK_STREAM, 0);
   if (server < 0) {
     std::perror("socket");
@@ -460,8 +475,8 @@ int run_server(Shell& shell, const Options& opt) {
                                      "Content-Length: %zu\r\nCache-Control: no-store\r\n"
                                      "Connection: close\r\n\r\n",
                                      frame.size());
-      send(fd, header, static_cast<size_t>(hlen), 0);
-      send(fd, frame.data(), frame.size(), 0);
+      if (send_all(fd, header, static_cast<size_t>(hlen)) == 0)
+        send_all(fd, frame.data(), frame.size());
     } else if (req.path == "/state") {
       const Metrics m = shell.metrics();
       char body[512];
@@ -478,8 +493,8 @@ int run_server(Shell& shell, const Options& opt) {
                                      "Content-Length: %d\r\nCache-Control: no-store\r\n"
                                      "Connection: close\r\n\r\n",
                                      n);
-      send(fd, header, static_cast<size_t>(hlen), 0);
-      send(fd, body, static_cast<size_t>(n), 0);
+      if (send_all(fd, header, static_cast<size_t>(hlen)) == 0)
+        send_all(fd, body, static_cast<size_t>(n));
     } else if (req.path == "/input") {
       const std::string type = param(req.query, "type");
       const int x = std::atoi(param(req.query, "x").c_str());
@@ -494,11 +509,11 @@ int run_server(Shell& shell, const Options& opt) {
         shell.scroll(Point{x, y}, std::atoi(param(req.query, "d").c_str()));
       }
       const char* ok = "HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n";
-      send(fd, ok, std::strlen(ok), 0);
+      send_all(fd, ok, std::strlen(ok));
     } else if (req.path == "/key") {
       shell.key(url_decode(param(req.query, "k")));
       const char* ok = "HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n";
-      send(fd, ok, std::strlen(ok), 0);
+      send_all(fd, ok, std::strlen(ok));
     } else {
       const std::string page = html_page(opt.width, opt.height);
       char header[256];
@@ -507,8 +522,8 @@ int run_server(Shell& shell, const Options& opt) {
                                      "Content-Length: %zu\r\nCache-Control: no-store\r\n"
                                      "Connection: close\r\n\r\n",
                                      page.size());
-      send(fd, header, static_cast<size_t>(hlen), 0);
-      send(fd, page.data(), page.size(), 0);
+      if (send_all(fd, header, static_cast<size_t>(hlen)) == 0)
+        send_all(fd, page.data(), page.size());
     }
     close(fd);
   }
