@@ -103,15 +103,40 @@ restarts on hang after three failed probes, and refuses to double-bind. See
 
 ### Three ways to open it
 
-|               | How                                                              | What you get                                                        |
-| ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **Live app**  | `npm start` → http://localhost:3000 (or the chat's live preview) | Full read-write book: post vouchers, create ledgers, import XML     |
-| **Installed** | same URL → **Install app**, or _Add to Home screen_ on a phone   | Standalone window, own icon, offline shell                          |
-| **Snapshot**  | open `public/snapshot.html` (also served at `/snapshot.html`)    | The same screens over a frozen copy of the book, no server required |
+|                | How                                                              | What you get                                                        |
+| -------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Live app**   | `npm start` → http://localhost:3000 (or the chat's live preview) | Full read-write book: post vouchers, create ledgers, import XML     |
+| **Installed**  | same URL → **Install app**, or _Add to Home screen_ on a phone   | Standalone window, own icon, offline shell                          |
+| **Snapshot**   | open `public/snapshot.html` (also served at `/snapshot.html`)    | The same screens over a frozen copy of the book, no server required |
+| **Static app** | `/static/` on any server, or `npm run build:static`              | Installable, offline-capable copy that survives any host change     |
 
 The snapshot inlines the API responses (`npm run snapshot`) and swaps `fetch`
 for a lookup table, so one 176 KB HTML file renders real reports offline. It is
 read-only by design; posting is disabled.
+
+### The static web app (`public/static`)
+
+`npm run build:static` writes a complete, serverless copy of TallyCraft:
+
+```
+public/static/
+  index.html            every screen, every report, inlined (177 KB)
+  404.html              deep links land on the same shell
+  manifest.webmanifest  relative start_url/scope, installable anywhere
+  sw.js                 offline cache, scope-relative
+  icons/                generated PNGs
+  .nojekyll             GitHub Pages will not drop files
+```
+
+It exists because a preview URL can die for reasons outside the app: a recycled
+sandbox, a closed laptop, a proxy that forgets the port. This copy needs no
+process, no port and no API — open the file, or host the directory anywhere
+(GitHub Pages, S3, nginx, a USB stick). Every path inside is relative, so the
+same output works at `/` and under `/rea/`.
+
+It is **read-only by design**: a static host cannot accept a posting, so the
+shim answers `501 SNAPSHOT_READ_ONLY` instead of pretending. Use the server
+build to post vouchers.
 
 ### Install it as an app
 
@@ -252,6 +277,7 @@ tallycraft/
   src/seed.js            deterministic demo book (Surat Weaves Pvt Ltd)
   scripts/snapshot.mjs   builds public/snapshot.html from the live service
   scripts/generate-icons.mjs  rasterises the app icons with no dependencies
+  scripts/build-static.mjs    standalone web app: public/static, host-anywhere
   scripts/serve.mjs      supervisor: port resolution, restart, watchdog, discovery
   scripts/bootstrap.mjs  idempotent bring-up for a recycled sandbox
   scripts/backup.mjs     hot, verified backup (VACUUM INTO) with retention
@@ -322,19 +348,20 @@ Full guide, including TLS, auth, upgrade and rollback procedures:
 
 ## Operations
 
-| Command               | Purpose                                                           |
-| --------------------- | ----------------------------------------------------------------- |
-| `npm run check`       | Report drift (git, deps, build, agents) without changing anything |
-| `npm run up`          | Repair drift, then serve under the supervisor                     |
-| `npm run preview`     | Start/verify the supervised preview on port 3000                  |
-| `--aliases 8080,5173` | Extra ports that answer the same app (default `8080,5173,4000`)   |
-| `npm run bootstrap`   | Repair only, no server                                            |
-| `npm run snapshot`    | Rebuild the offline `public/snapshot.html`                        |
-| `npm run icons`       | Regenerate the PNG icons and `favicon.ico`                        |
-| `npm run backup`      | Verified hot backup into `backups/` (retention 14)                |
-| `npm run restore`     | Restore a backup; keeps the replaced file as `.pre-restore-*`     |
-| `npm run health`      | Probe `/healthz` the way the container healthcheck does           |
-| `npm run docker:up`   | Build and start the single-host deployment                        |
+| Command                | Purpose                                                                  |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `npm run check`        | Report drift (git, deps, build, agents) without changing anything        |
+| `npm run up`           | Repair drift, then serve under the supervisor                            |
+| `npm run preview`      | Start/verify the supervised preview on port 3000                         |
+| `--aliases 8080,5173`  | Extra ports that answer the same app (default `8080,5173,4000`)          |
+| `npm run bootstrap`    | Repair only, no server                                                   |
+| `npm run snapshot`     | Rebuild the offline `public/snapshot.html`                               |
+| `npm run build:static` | Rebuild the standalone web app in `public/static` (served at `/static/`) |
+| `npm run icons`        | Regenerate the PNG icons and `favicon.ico`                               |
+| `npm run backup`       | Verified hot backup into `backups/` (retention 14)                       |
+| `npm run restore`      | Restore a backup; keeps the replaced file as `.pre-restore-*`            |
+| `npm run health`       | Probe `/healthz` the way the container healthcheck does                  |
+| `npm run docker:up`    | Build and start the single-host deployment                               |
 
 Supervisor guarantees, each covered by a test or a recorded manual check:
 
@@ -351,7 +378,7 @@ Supervisor guarantees, each covered by a test or a recorded manual check:
 npm test
 ```
 
-71 tests cover: catalog shape, money parsing and Indian grouping, seeded
+78 tests cover: catalog shape, money parsing and Indian grouping, seeded
 balance, balance-sheet identity on four dates, per-voucher balance, rejection
 paths (unbalanced, too few lines, outside FY, reserved group, unknown ledger,
 duplicate number), numbering, warnings, ledger reconciliation, day-book totals,
@@ -366,7 +393,9 @@ worker is delivered from the root with a root scope, and every path the worker
 precaches actually exists, the deployment contract (the image exposes the port
 the app uses, the volume sits where `TALLYCRAFT_DB` points, the proxies forward
 the host and never cache the API), configuration parsing, and backup/restore
-including the refusal paths.
+including the refusal paths, and the static web app (self-contained, relative
+paths only, every read inlined, installable manifest, scope-relative worker,
+explicit read-only refusal).
 
 ## Licence
 

@@ -92,7 +92,7 @@ export function collectData(app) {
   return data;
 }
 
-const CLIENT_SHIM = `
+export const CLIENT_SHIM = `
 <script>
   // Static data table standing in for the JSON API.
   window.__TALLYCRAFT_SNAPSHOT__ = true;

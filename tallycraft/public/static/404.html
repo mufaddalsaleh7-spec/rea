@@ -1,0 +1,4388 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>TallyCraft · Accounting workspace</title>
+    <meta
+      name="description"
+      content="TallyCraft is a keyboard-first double-entry accounting workspace: vouchers, ledgers, trial balance, balance sheet, P&L, inventory and Tally XML interchange."
+    />
+    <meta name="theme-color" content="#0f4c81" />
+    <meta name="color-scheme" content="light" />
+    <meta name="application-name" content="TallyCraft" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="TallyCraft" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <style>:root {
+  --brand-900: #0b2a49;
+  --brand-800: #0f3d66;
+  --brand-700: #0f4c81;
+  --brand-600: #1565a5;
+  --brand-100: #e3eef8;
+  --accent: #f2b705;
+  --accent-soft: #fff5d1;
+  --ink: #11263d;
+  --ink-soft: #4a5f78;
+  --muted: #6b7f95;
+  --canvas: #eef3f8;
+  --panel: #ffffff;
+  --line: #d8e2ec;
+  --line-strong: #b9c9d9;
+  --debit: #0b6b4f;
+  --credit: #a8342a;
+  --shadow: 0 1px 2px rgba(16, 38, 61, 0.06), 0 8px 24px rgba(16, 38, 61, 0.07);
+  --radius: 10px;
+  --mono:
+    "SFMono-Regular", "JetBrains Mono", "Cascadia Mono", "Liberation Mono",
+    Menlo, monospace;
+  --sans: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--canvas);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-size: 15px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- top bar */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 22px;
+  background: linear-gradient(
+    100deg,
+    var(--brand-900),
+    var(--brand-700) 55%,
+    var(--brand-600)
+  );
+  color: #f4f8fc;
+  box-shadow: 0 2px 10px rgba(11, 42, 73, 0.25);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 210px;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--brand-900);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -1px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-text strong {
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+
+.brand-text small {
+  font-size: 11.5px;
+  color: #b9d2ea;
+  letter-spacing: 0.2px;
+}
+
+.mainnav {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.mainnav button {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #cfe1f2;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 550;
+  letter-spacing: 0.2px;
+}
+
+.mainnav button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.mainnav button.active {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: #cfe1f2;
+}
+
+.pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.clock {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------- ticker */
+
+.ticker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 22px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid #eedd95;
+  color: #6b5205;
+  font-size: 13px;
+}
+
+.ticker[data-kind="error"] {
+  background: #fdecea;
+  border-bottom-color: #f3c0ba;
+  color: #8f241c;
+}
+
+.ticker[data-kind="ok"] {
+  background: #e8f6ee;
+  border-bottom-color: #b8e0c8;
+  color: #0b5f3d;
+}
+
+.ticker[hidden] {
+  display: none;
+}
+
+.ticker-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.65;
+  flex: none;
+}
+
+.link-button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+/* ------------------------------------------------------------------- view */
+
+.view {
+  flex: 1;
+  width: 100%;
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 24px 22px 40px;
+}
+
+.loading {
+  padding: 60px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 25px;
+  letter-spacing: -0.3px;
+}
+
+.page-head .sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.head-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid.cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid.split {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+}
+
+@media (max-width: 980px) {
+  .grid.cols-4,
+  .grid.cols-3,
+  .grid.cols-2,
+  .grid.split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .mainnav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .grid.cols-4,
+  .grid.cols-3,
+  .grid.cols-2,
+  .grid.split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .view {
+    padding: 16px 14px 32px;
+  }
+}
+
+/* ------------------------------------------------------------------- card */
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+}
+
+.card h2,
+.card h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  letter-spacing: 0.1px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card h2 small,
+.card h3 small {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stat {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat .label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-weight: 650;
+}
+
+.stat .value {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 25px;
+  margin-top: 8px;
+  letter-spacing: -0.8px;
+}
+
+.stat .hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.stat::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: var(--brand-600);
+  opacity: 0.55;
+}
+
+.stat.debit::after {
+  background: var(--debit);
+}
+
+.stat.credit::after {
+  background: var(--credit);
+}
+
+.stat.accent::after {
+  background: var(--accent);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  border: 1px solid transparent;
+}
+
+.badge.ok {
+  background: #e7f6ed;
+  color: #0b6b4f;
+  border-color: #b7dfc9;
+}
+
+.badge.warn {
+  background: #fff4d6;
+  color: #7a5b00;
+  border-color: #eedd95;
+}
+
+.badge.bad {
+  background: #fdecea;
+  color: #9a2c22;
+  border-color: #f0c2bb;
+}
+
+.badge.neutral {
+  background: var(--brand-100);
+  color: var(--brand-800);
+  border-color: #c6dbee;
+}
+
+/* ------------------------------------------------------------------ table */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+table.data th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line-strong);
+  padding: 8px 10px;
+  white-space: nowrap;
+  background: #f7fafd;
+  position: sticky;
+  top: 0;
+}
+
+table.data td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+table.data tr:hover td {
+  background: #f5f9fd;
+}
+
+table.data tr.group-row td {
+  font-weight: 700;
+  background: #f2f7fc;
+  color: var(--brand-900);
+}
+
+table.data tr.subgroup-row td {
+  font-weight: 650;
+  color: var(--brand-800);
+  background: #f8fbfe;
+}
+
+table.data tr.total-row td {
+  font-weight: 700;
+  border-top: 2px solid var(--line-strong);
+  border-bottom: none;
+  background: #fff;
+}
+
+td.num,
+th.num {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+td.debit {
+  color: var(--debit);
+}
+
+td.credit {
+  color: var(--credit);
+}
+
+.indent-1 {
+  padding-left: 26px !important;
+}
+
+.indent-2 {
+  padding-left: 42px !important;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 12px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ forms */
+
+label.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="number"],
+input[type="search"],
+select,
+textarea {
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: var(--ink);
+  width: 100%;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 3px rgba(21, 101, 165, 0.13);
+  outline: none;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 62px;
+}
+
+input.num,
+td input.num {
+  font-family: var(--mono);
+  text-align: right;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 0.05s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.button:hover {
+  border-color: var(--brand-600);
+  color: var(--brand-800);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button.primary {
+  background: linear-gradient(180deg, var(--brand-600), var(--brand-700));
+  border-color: var(--brand-800);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(11, 42, 73, 0.25);
+}
+
+.button.primary:hover {
+  color: #fff;
+  filter: brightness(1.06);
+}
+
+.button.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--brand-700);
+}
+
+.button.danger {
+  border-color: #e5b4ae;
+  color: #9a2c22;
+}
+
+.button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button kbd {
+  font-size: 10.5px;
+  padding: 1px 5px;
+}
+
+kbd {
+  font-family: var(--mono);
+  background: #f0f4f8;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------- gateway */
+
+.gateway-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gateway-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+.gateway-item:hover,
+.gateway-item:focus-visible {
+  background: var(--brand-100);
+  border-color: #c6dbee;
+}
+
+.gateway-item .gi-key {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--brand-700);
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  padding: 2px 6px;
+  min-width: 34px;
+  text-align: center;
+  flex: none;
+}
+
+.gateway-item .gi-label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 560;
+}
+
+.gateway-item .gi-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.gateway-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  font-weight: 700;
+  margin: 14px 4px 6px;
+}
+
+/* ------------------------------------------------------------ voucher sheet */
+
+.voucher-sheet {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.voucher-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, #f7fbff, #eef5fb);
+  border-bottom: 1px solid var(--line);
+}
+
+.voucher-head .vtype {
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.2px;
+  color: var(--brand-900);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.voucher-head .vtype .vt-key {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--accent);
+  color: var(--brand-900);
+  border-radius: 6px;
+  padding: 2px 7px;
+  letter-spacing: 0.3px;
+}
+
+.voucher-head .grow {
+  flex: 1;
+}
+
+.voucher-head .field {
+  min-width: 132px;
+}
+
+.voucher-body {
+  padding: 14px 18px 4px;
+}
+
+.lines-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.lines-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.lines-table td {
+  padding: 5px 6px;
+  border-bottom: 1px dashed var(--line);
+  vertical-align: middle;
+}
+
+.lines-table td input,
+.lines-table td select {
+  border-color: transparent;
+  background: transparent;
+  padding: 7px 8px;
+}
+
+.lines-table td input:hover,
+.lines-table td select:hover {
+  border-color: var(--line-strong);
+  background: #fff;
+}
+
+.lines-table td input:focus,
+.lines-table td select:focus {
+  background: #fff;
+  border-color: var(--brand-600);
+}
+
+.lines-table .remove-line {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.lines-table .remove-line:hover {
+  background: #fdecea;
+  color: #9a2c22;
+}
+
+.voucher-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--line);
+  background: #fafcfe;
+}
+
+.voucher-foot .narration {
+  flex: 1;
+  min-width: 260px;
+}
+
+.balance-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 280px;
+}
+
+.balance-meter .row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.balance-meter .row strong {
+  font-weight: 700;
+}
+
+.balance-meter .status {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+.balance-meter .status.ok {
+  color: var(--debit);
+}
+
+.balance-meter .status.bad {
+  color: var(--credit);
+}
+
+.inventory-block {
+  margin: 0 18px 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fbfdff;
+}
+
+.inventory-block .inv-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.inventory-block table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.inventory-block td {
+  padding: 4px 6px;
+  border-bottom: 1px dashed var(--line);
+}
+
+/* ------------------------------------------------------------------ modal */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 42, 73, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 40;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(11, 42, 73, 0.35);
+  max-width: 620px;
+  width: 100%;
+  max-height: 86vh;
+  overflow: auto;
+}
+
+.modal header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal header h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.modal .body {
+  padding: 16px 20px;
+}
+
+.modal footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  background: #fafcfe;
+}
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 13.5px;
+  align-items: center;
+}
+
+/* ----------------------------------------------------------------- keybar */
+
+.keybar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 22px;
+  background: var(--brand-900);
+  color: #c9dcee;
+  font-size: 11.5px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.keybar span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.keybar .keybar-label {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 10px;
+  color: #8fb2d0;
+  font-weight: 700;
+}
+
+.keybar kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+  border-bottom-color: rgba(255, 255, 255, 0.32);
+  color: #eaf3fb;
+}
+
+/* ------------------------------------------------------------------ misc */
+
+.empty {
+  padding: 26px 10px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12.5px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.chip.active {
+  background: var(--brand-700);
+  border-color: var(--brand-800);
+  color: #fff;
+}
+
+.dropzone {
+  border: 2px dashed var(--line-strong);
+  border-radius: 10px;
+  padding: 22px;
+  text-align: center;
+  color: var(--muted);
+  background: #fbfdff;
+  cursor: pointer;
+}
+
+.dropzone.dragover {
+  border-color: var(--brand-600);
+  background: var(--brand-100);
+  color: var(--brand-800);
+}
+
+.code-block {
+  background: var(--brand-900);
+  color: #d8e9f7;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.list-plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-plain li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--line);
+  font-size: 13.5px;
+}
+
+.list-plain li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+@media print {
+  .topbar,
+  .keybar,
+  .ticker,
+  .head-tools,
+  .toolbar,
+  .row-actions {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .card {
+    box-shadow: none;
+    border: none;
+  }
+  .view {
+    max-width: none;
+    padding: 0;
+  }
+}
+
+/* ------------------------------------------------------------- web app shell */
+
+/*
+ * Installable-app affordances. The same shell runs as a browser tab, an
+ * installed window and a thumb-sized screen; only the chrome changes.
+ */
+
+.pill-action {
+  font-family: var(--sans);
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--brand-900);
+  border-color: transparent;
+}
+
+.pill-action:hover {
+  filter: brightness(1.04);
+}
+
+#net-status[data-state="offline"] {
+  background: #fdecea;
+  color: #8a1c10;
+  border-color: #f3c0ba;
+}
+
+#net-status[data-state="online"] {
+  background: rgba(120, 220, 170, 0.18);
+  color: #c6f2dd;
+  border-color: rgba(150, 230, 190, 0.4);
+}
+
+/* Installed window: no browser chrome, so reclaim the safe area. */
+@media (display-mode: standalone) {
+  .topbar {
+    padding-top: calc(10px + env(safe-area-inset-top));
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding-bottom: calc(58px + env(safe-area-inset-bottom));
+  }
+
+  /* Touch devices do not have F-keys; the key hints are noise. */
+  .keybar {
+    display: none;
+  }
+
+  .topbar {
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  .brand {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brand-text strong {
+    font-size: 15px;
+  }
+
+  .topbar-meta {
+    gap: 8px;
+  }
+
+  .topbar-meta .clock {
+    display: none;
+  }
+
+  /* Primary navigation becomes a thumb-reachable tab bar. */
+  .mainnav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    order: 0;
+    width: 100%;
+    gap: 0;
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 16px rgba(16, 38, 61, 0.09);
+    overflow: visible;
+  }
+
+  .mainnav button {
+    flex: 1;
+    min-height: 48px;
+    padding: 6px 2px;
+    border-radius: 8px;
+    color: var(--ink-soft);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+  }
+
+  .mainnav button:hover {
+    background: var(--brand-100);
+    color: var(--brand-800);
+  }
+
+  .mainnav button.active {
+    background: var(--brand-100);
+    border-color: var(--brand-100);
+    color: var(--brand-800);
+  }
+
+  .view {
+    padding: 14px 12px 24px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  /* Comfortable tap targets everywhere, per the 44px guidance. */
+  .button,
+  .link-button,
+  input,
+  select,
+  textarea {
+    min-height: 42px;
+  }
+}
+</style>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="favicon.ico" sizes="32x32 16x16" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  </head>
+  <body>
+    <div id="static-banner" style="background:#0b2a49;color:#f2b705;font:600 12px/1.4 system-ui,sans-serif;padding:6px 22px;letter-spacing:.3px">
+      STATIC WEB APP · Surat Weaves Pvt Ltd · 37 ledgers · 35 vouchers · read-only
+      — postings need the server build (<code>npm start</code>)
+    </div><script>window.__TALLYCRAFT_STATIC_HOSTED__ = true;window.__TALLYCRAFT_DATA__ = {"/api/catalog":{"groups":[{"name":"Branch/Divisions","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Current Assets","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Fixed Assets","parent":null,"nature":"assets","natural":"Dr","ledger_count":2},{"name":"Investments","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Misc. Expenses (ASSET)","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Suspense A/c","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Bank Accounts","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":1},{"name":"Cash-in-Hand","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":1},{"name":"Deposits (Asset)","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":0},{"name":"Loans & Advances (Asset)","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":0},{"name":"Stock-in-Hand","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":1},{"name":"Sundry Debtors","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":4},{"name":"Direct Expenses","parent":null,"nature":"expense","natural":"Dr","ledger_count":1},{"name":"Indirect Expenses","parent":null,"nature":"expense","natural":"Dr","ledger_count":8},{"name":"Purchase Accounts","parent":null,"nature":"expense","natural":"Dr","ledger_count":2},{"name":"Direct Incomes","parent":null,"nature":"income","natural":"Cr","ledger_count":0},{"name":"Indirect Incomes","parent":null,"nature":"income","natural":"Cr","ledger_count":2},{"name":"Sales Accounts","parent":null,"nature":"income","natural":"Cr","ledger_count":3},{"name":"Capital Account","parent":null,"nature":"liabilities","natural":"Cr","ledger_count":1},{"name":"Current Liabilities","parent":null,"nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Loans (Liability)","parent":null,"nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Profit & Loss A/c","parent":null,"nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Bank OD A/c","parent":"Loans (Liability)","nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Duties & Taxes","parent":"Current Liabilities","nature":"liabilities","natural":"Cr","ledger_count":5},{"name":"Provisions","parent":"Current Liabilities","nature":"liabilities","natural":"Cr","ledger_count":1},{"name":"Secured Loans","parent":"Loans (Liability)","nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Sundry Creditors","parent":"Current Liabilities","nature":"liabilities","natural":"Cr","ledger_count":4},{"name":"Unsecured Loans","parent":"Loans (Liability)","nature":"liabilities","natural":"Cr","ledger_count":1}],"primaryGroups":["Branch/Divisions","Current Assets","Fixed Assets","Investments","Misc. Expenses (ASSET)","Suspense A/c","Direct Expenses","Indirect Expenses","Purchase Accounts","Direct Incomes","Indirect Incomes","Sales Accounts","Capital Account","Current Liabilities","Loans (Liability)","Profit & Loss A/c"],"voucherTypes":[{"code":"CONTRA","name":"Contra","shortcut":"F4","prefix":"CON","group":"accounting","requires":{"anyOf":["Cash-in-Hand","Bank Accounts","Bank OD A/c"],"hint":"Contra vouchers normally move cash or bank balances"}},{"code":"PAYMENT","name":"Payment","shortcut":"F5","prefix":"PAY","group":"accounting","requires":{"anyOf":["Cash-in-Hand","Bank Accounts","Bank OD A/c"],"hint":"Payment vouchers normally credit cash or bank"}},{"code":"RECEIPT","name":"Receipt","shortcut":"F6","prefix":"RCP","group":"accounting","requires":{"anyOf":["Cash-in-Hand","Bank Accounts","Bank OD A/c"],"hint":"Receipt vouchers normally debit cash or bank"}},{"code":"JOURNAL","name":"Journal","shortcut":"F7","prefix":"JRN","group":"accounting","requires":null},{"code":"SALES","name":"Sales","shortcut":"F8","prefix":"SAL","group":"accounting","requires":{"anyOf":["Sales Accounts"],"hint":"Sales vouchers normally credit a Sales Accounts ledger"}},{"code":"PURCHASE","name":"Purchase","shortcut":"F9","prefix":"PUR","group":"accounting","requires":{"anyOf":["Purchase Accounts"],"hint":"Purchase vouchers normally debit a Purchase Accounts ledger"}},{"code":"CREDIT_NOTE","name":"Credit Note","shortcut":"Alt+F5","prefix":"CRN","group":"accounting","requires":{"anyOf":["Sales Accounts"],"hint":"A credit note reverses a sale"}},{"code":"DEBIT_NOTE","name":"Debit Note","shortcut":"Alt+F6","prefix":"DBN","group":"accounting","requires":{"anyOf":["Purchase Accounts"],"hint":"A debit note reverses a purchase"}}],"units":["Nos","Pcs","Kg","Gm","Ltr","Mtr","Box","Set","Dozen","Bag"],"gstRates":[0,0.25,3,5,12,18,28]},"/api/company":{"id":1,"name":"Surat Weaves Pvt Ltd","mailingName":"Surat Weaves Pvt Ltd","address":"14, Ring Road, Textile Market, Surat 395002, Gujarat","gstin":"24AABCS4321P1Z9","state":"Gujarat","financialYearStart":"2026-04-01","financialYearEnd":"2027-03-31","baseCurrency":"INR"},"/api/statistics":{"company":{"id":1,"name":"Surat Weaves Pvt Ltd","mailingName":"Surat Weaves Pvt Ltd","address":"14, Ring Road, Textile Market, Surat 395002, Gujarat","gstin":"24AABCS4321P1Z9","state":"Gujarat","financialYearStart":"2026-04-01","financialYearEnd":"2027-03-31","baseCurrency":"INR"},"counts":{"ledgers":37,"vouchers":35,"groups":28,"stockItems":3},"cashInHand":182500,"bankBalance":569400,"debtors":1522350,"creditors":668680,"netProfit":287907},"/api/groups":[{"name":"Branch/Divisions","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Current Assets","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Fixed Assets","parent":null,"nature":"assets","natural":"Dr","ledger_count":2},{"name":"Investments","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Misc. Expenses (ASSET)","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Suspense A/c","parent":null,"nature":"assets","natural":"Dr","ledger_count":0},{"name":"Bank Accounts","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":1},{"name":"Cash-in-Hand","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":1},{"name":"Deposits (Asset)","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":0},{"name":"Loans & Advances (Asset)","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":0},{"name":"Stock-in-Hand","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":1},{"name":"Sundry Debtors","parent":"Current Assets","nature":"assets","natural":"Dr","ledger_count":4},{"name":"Direct Expenses","parent":null,"nature":"expense","natural":"Dr","ledger_count":1},{"name":"Indirect Expenses","parent":null,"nature":"expense","natural":"Dr","ledger_count":8},{"name":"Purchase Accounts","parent":null,"nature":"expense","natural":"Dr","ledger_count":2},{"name":"Direct Incomes","parent":null,"nature":"income","natural":"Cr","ledger_count":0},{"name":"Indirect Incomes","parent":null,"nature":"income","natural":"Cr","ledger_count":2},{"name":"Sales Accounts","parent":null,"nature":"income","natural":"Cr","ledger_count":3},{"name":"Capital Account","parent":null,"nature":"liabilities","natural":"Cr","ledger_count":1},{"name":"Current Liabilities","parent":null,"nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Loans (Liability)","parent":null,"nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Profit & Loss A/c","parent":null,"nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Bank OD A/c","parent":"Loans (Liability)","nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Duties & Taxes","parent":"Current Liabilities","nature":"liabilities","natural":"Cr","ledger_count":5},{"name":"Provisions","parent":"Current Liabilities","nature":"liabilities","natural":"Cr","ledger_count":1},{"name":"Secured Loans","parent":"Loans (Liability)","nature":"liabilities","natural":"Cr","ledger_count":0},{"name":"Sundry Creditors","parent":"Current Liabilities","nature":"liabilities","natural":"Cr","ledger_count":4},{"name":"Unsecured Loans","parent":"Loans (Liability)","nature":"liabilities","natural":"Cr","ledger_count":1}],"/api/ledgers":{"ledgers":[{"id":5,"name":"HDFC Bank - Current A/c","group":"Bank Accounts","groupId":17,"nature":"assets","natural":"Dr","opening":850000,"openingPaise":85000000,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"HDFC Bank - Current A/c","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":1,"name":"Share Capital","group":"Capital Account","groupId":1,"nature":"liabilities","natural":"Cr","opening":-2439500,"openingPaise":-243950000,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Share Capital","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":6,"name":"Cash","group":"Cash-in-Hand","groupId":19,"nature":"assets","natural":"Dr","opening":75000,"openingPaise":7500000,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Cash","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":29,"name":"Freight Inward","group":"Direct Expenses","groupId":14,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Freight Inward","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":20,"name":"GST Payable","group":"Duties & Taxes","groupId":24,"nature":"liabilities","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"GST Payable","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":18,"name":"Input CGST","group":"Duties & Taxes","groupId":24,"nature":"liabilities","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Input CGST","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":19,"name":"Input SGST","group":"Duties & Taxes","groupId":24,"nature":"liabilities","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Input SGST","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":16,"name":"Output CGST","group":"Duties & Taxes","groupId":24,"nature":"liabilities","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Output CGST","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":17,"name":"Output SGST","group":"Duties & Taxes","groupId":24,"nature":"liabilities","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Output SGST","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":4,"name":"Furniture & Fixtures","group":"Fixed Assets","groupId":4,"nature":"assets","natural":"Dr","opening":150000,"openingPaise":15000000,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Furniture & Fixtures","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":3,"name":"Plant & Machinery","group":"Fixed Assets","groupId":4,"nature":"assets","natural":"Dr","opening":1200000,"openingPaise":120000000,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Plant & Machinery","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":35,"name":"Bank Charges","group":"Indirect Expenses","groupId":15,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Bank Charges","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":37,"name":"Depreciation","group":"Indirect Expenses","groupId":15,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Depreciation","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":32,"name":"Electricity","group":"Indirect Expenses","groupId":15,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Electricity","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":36,"name":"Printing & Stationery","group":"Indirect Expenses","groupId":15,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Printing & Stationery","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":31,"name":"Rent","group":"Indirect Expenses","groupId":15,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Rent","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":30,"name":"Salary","group":"Indirect Expenses","groupId":15,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Salary","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":34,"name":"Telephone & Internet","group":"Indirect Expenses","groupId":15,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Telephone & Internet","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":33,"name":"Transport Charges","group":"Indirect Expenses","groupId":15,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Transport Charges","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":27,"name":"Discount Received","group":"Indirect Incomes","groupId":13,"nature":"income","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Discount Received","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":28,"name":"Interest Received","group":"Indirect Incomes","groupId":13,"nature":"income","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Interest Received","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":21,"name":"Salary Payable","group":"Provisions","groupId":25,"nature":"liabilities","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Salary Payable","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":25,"name":"Purchase - Fabric","group":"Purchase Accounts","groupId":11,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Purchase - Fabric","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":26,"name":"Purchase - Garments","group":"Purchase Accounts","groupId":11,"nature":"expense","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Purchase - Garments","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":22,"name":"Sales - Fabric","group":"Sales Accounts","groupId":10,"nature":"income","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Sales - Fabric","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":23,"name":"Sales - Garments","group":"Sales Accounts","groupId":10,"nature":"income","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Sales - Garments","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":24,"name":"Sales Returns","group":"Sales Accounts","groupId":10,"nature":"income","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Sales Returns","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":7,"name":"Stock-in-Hand","group":"Stock-in-Hand","groupId":22,"nature":"assets","natural":"Dr","opening":741000,"openingPaise":74100000,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Stock-in-Hand","address":null,"phone":null,"creditDays":null,"isActive":true},{"id":14,"name":"Dye Master Processors","group":"Sundry Creditors","groupId":26,"nature":"liabilities","natural":"Cr","opening":-54000,"openingPaise":-5400000,"openingDated":null,"gstin":null,"partyType":"creditor","mailingName":"Dye Master Processors","address":null,"phone":null,"creditDays":45,"isActive":true},{"id":13,"name":"Krishna Yarn Traders","group":"Sundry Creditors","groupId":26,"nature":"liabilities","natural":"Cr","opening":-96000,"openingPaise":-9600000,"openingDated":null,"gstin":null,"partyType":"creditor","mailingName":"Krishna Yarn Traders","address":null,"phone":null,"creditDays":45,"isActive":true},{"id":15,"name":"Riddhi Transport","group":"Sundry Creditors","groupId":26,"nature":"liabilities","natural":"Cr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":"creditor","mailingName":"Riddhi Transport","address":null,"phone":null,"creditDays":45,"isActive":true},{"id":12,"name":"Surat Weaving Mills","group":"Sundry Creditors","groupId":26,"nature":"liabilities","natural":"Cr","opening":-180000,"openingPaise":-18000000,"openingDated":null,"gstin":null,"partyType":"creditor","mailingName":"Surat Weaving Mills","address":null,"phone":null,"creditDays":45,"isActive":true},{"id":9,"name":"Meera Fashion House","group":"Sundry Debtors","groupId":23,"nature":"assets","natural":"Dr","opening":86500,"openingPaise":8650000,"openingDated":null,"gstin":null,"partyType":"debtor","mailingName":"Meera Fashion House","address":null,"phone":null,"creditDays":30,"isActive":true},{"id":10,"name":"Nakoda Garments","group":"Sundry Debtors","groupId":23,"nature":"assets","natural":"Dr","opening":42000,"openingPaise":4200000,"openingDated":null,"gstin":null,"partyType":"debtor","mailingName":"Nakoda Garments","address":null,"phone":null,"creditDays":30,"isActive":true},{"id":8,"name":"Ravi Textiles","group":"Sundry Debtors","groupId":23,"nature":"assets","natural":"Dr","opening":125000,"openingPaise":12500000,"openingDated":null,"gstin":"24AABCR1234M1Z5","partyType":"debtor","mailingName":"Ravi Textiles","address":null,"phone":null,"creditDays":30,"isActive":true},{"id":11,"name":"Shreeji Boutique","group":"Sundry Debtors","groupId":23,"nature":"assets","natural":"Dr","opening":0,"openingPaise":0,"openingDated":null,"gstin":null,"partyType":"debtor","mailingName":"Shreeji Boutique","address":null,"phone":null,"creditDays":30,"isActive":true},{"id":2,"name":"Director's Loan","group":"Unsecured Loans","groupId":28,"nature":"liabilities","natural":"Cr","opening":-500000,"openingPaise":-50000000,"openingDated":null,"gstin":null,"partyType":null,"mailingName":"Director's Loan","address":null,"phone":null,"creditDays":null,"isActive":true}]},"/api/vouchers":{"vouchers":[{"id":35,"type":"JOURNAL","typeName":"Journal","number":"JRN-0004","date":"2026-10-20","narration":"Half-yearly depreciation on plant and furniture","reference":null,"party":null,"total":67500},{"id":33,"type":"JOURNAL","typeName":"Journal","number":"JRN-0003","date":"2026-10-15","narration":"Interest received on fixed deposit","reference":null,"party":null,"total":9600},{"id":34,"type":"SALES","typeName":"Sales","number":"SAL-0008","date":"2026-10-10","narration":"Diwali stock supply - invoice RT/131","reference":null,"party":"Ravi Textiles","total":126000},{"id":32,"type":"RECEIPT","typeName":"Receipt","number":"RCP-0005","date":"2026-10-07","narration":"Receipt against RT/119","reference":null,"party":"Ravi Textiles","total":100000},{"id":31,"type":"PAYMENT","typeName":"Payment","number":"PAY-0012","date":"2026-09-30","narration":"September rent and salary","reference":null,"party":null,"total":130000},{"id":30,"type":"PAYMENT","typeName":"Payment","number":"PAY-0011","date":"2026-09-12","narration":"GST for May to July paid (input credit carried forward)","reference":null,"party":null,"total":54350},{"id":29,"type":"SALES","typeName":"Sales","number":"SAL-0007","date":"2026-09-05","narration":"Fabric supply - NG/58","reference":null,"party":"Nakoda Garments","total":100800},{"id":28,"type":"PAYMENT","typeName":"Payment","number":"PAY-0010","date":"2026-08-31","narration":"Printing and stationery for the season","reference":null,"party":null,"total":7800},{"id":27,"type":"PAYMENT","typeName":"Payment","number":"PAY-0009","date":"2026-08-28","narration":"Cleared KY/455","reference":null,"party":"Krishna Yarn Traders","total":126000},{"id":26,"type":"RECEIPT","typeName":"Receipt","number":"RCP-0004","date":"2026-08-22","narration":"Advance received for October shipment","reference":null,"party":"Shreeji Boutique","total":60000},{"id":25,"type":"SALES","typeName":"Sales","number":"SAL-0006","date":"2026-08-11","narration":"Festive season supply - MF/96","reference":null,"party":"Meera Fashion House","total":336000},{"id":24,"type":"PURCHASE","typeName":"Purchase","number":"PUR-0004","date":"2026-08-05","narration":"Readymade shirt purchase - bill SWM/2177","reference":null,"party":"Surat Weaving Mills","total":127680},{"id":23,"type":"PURCHASE","typeName":"Purchase","number":"PUR-0003","date":"2026-08-02","narration":"Grey fabric purchase - bill SWM/2140","reference":null,"party":"Surat Weaving Mills","total":189000},{"id":22,"type":"PAYMENT","typeName":"Payment","number":"PAY-0008","date":"2026-07-31","narration":"Bank charges for the quarter","reference":null,"party":null,"total":1250},{"id":21,"type":"PAYMENT","typeName":"Payment","number":"PAY-0007","date":"2026-07-20","narration":"Electricity bill (April to June)","reference":null,"party":null,"total":32400},{"id":20,"type":"RECEIPT","typeName":"Receipt","number":"RCP-0003","date":"2026-07-15","narration":"Balance received in cash","reference":null,"party":"Nakoda Garments","total":94500},{"id":19,"type":"CREDIT_NOTE","typeName":"Credit Note","number":"CRN-0001","date":"2026-07-10","narration":"Shade mismatch return against NG/31","reference":null,"party":"Nakoda Garments","total":10500},{"id":18,"type":"SALES","typeName":"Sales","number":"SAL-0005","date":"2026-07-04","narration":"Repeat order - invoice RT/119","reference":null,"party":"Ravi Textiles","total":315000},{"id":17,"type":"PAYMENT","typeName":"Payment","number":"PAY-0006","date":"2026-06-30","narration":"Monthly telephone and internet","reference":null,"party":null,"total":4200},{"id":16,"type":"JOURNAL","typeName":"Journal","number":"JRN-0002","date":"2026-06-30","narration":"Freight inward billed by transporter","reference":null,"party":null,"total":18500},{"id":15,"type":"PAYMENT","typeName":"Payment","number":"PAY-0005","date":"2026-06-20","narration":"GST for April paid in cash","reference":null,"party":null,"total":9200},{"id":14,"type":"PAYMENT","typeName":"Payment","number":"PAY-0004","date":"2026-06-20","narration":"Processing charges paid","reference":null,"party":"Dye Master Processors","total":54000},{"id":13,"type":"RECEIPT","typeName":"Receipt","number":"RCP-0002","date":"2026-06-18","narration":"Receipt against RT/104","reference":null,"party":"Ravi Textiles","total":126000},{"id":12,"type":"SALES","typeName":"Sales","number":"SAL-0004","date":"2026-06-08","narration":"Fabric supply - invoice SB/12","reference":null,"party":"Shreeji Boutique","total":403200},{"id":11,"type":"PAYMENT","typeName":"Payment","number":"PAY-0003","date":"2026-05-31","narration":"April salary paid","reference":null,"party":null,"total":96000},{"id":8,"type":"PURCHASE","typeName":"Purchase","number":"PUR-0002","date":"2026-05-18","narration":"Yarn purchase - bill KY/455","reference":null,"party":"Krishna Yarn Traders","total":126000},{"id":7,"type":"SALES","typeName":"Sales","number":"SAL-0003","date":"2026-05-14","narration":"Fabric supply - invoice NG/31","reference":null,"party":"Nakoda Garments","total":131250},{"id":6,"type":"SALES","typeName":"Sales","number":"SAL-0002","date":"2026-05-06","narration":"Garment supply - invoice MF/77","reference":null,"party":"Meera Fashion House","total":134400},{"id":10,"type":"PAYMENT","typeName":"Payment","number":"PAY-0002","date":"2026-05-05","narration":"Shop rent for May","reference":null,"party":null,"total":28000},{"id":9,"type":"CONTRA","typeName":"Contra","number":"CON-0001","date":"2026-05-02","narration":"Cash withdrawn from bank for shop expenses","reference":null,"party":null,"total":25000},{"id":5,"type":"JOURNAL","typeName":"Journal","number":"JRN-0001","date":"2026-04-30","narration":"April salary booked, payable on the 7th","reference":null,"party":null,"total":96000},{"id":4,"type":"PAYMENT","typeName":"Payment","number":"PAY-0001","date":"2026-04-15","narration":"Part payment against SWM/2081","reference":null,"party":"Surat Weaving Mills","total":100000},{"id":3,"type":"RECEIPT","typeName":"Receipt","number":"RCP-0001","date":"2026-04-12","narration":"Part payment received by NEFT","reference":null,"party":"Meera Fashion House","total":80000},{"id":2,"type":"PURCHASE","typeName":"Purchase","number":"PUR-0001","date":"2026-04-05","narration":"Grey fabric purchase - bill SWM/2081","reference":null,"party":"Surat Weaving Mills","total":157500},{"id":1,"type":"SALES","typeName":"Sales","number":"SAL-0001","date":"2026-04-03","narration":"Fabric supply - invoice RT/104","reference":null,"party":"Ravi Textiles","total":193200}]},"/api/reports/trial-balance":{"asOf":"2027-03-31","company":"Surat Weaves Pvt Ltd","rows":[{"name":"Capital Account","kind":"group","depth":0,"debit":0,"credit":2439500,"balance":-2439500},{"name":"Share Capital","kind":"ledger","depth":1,"debit":0,"credit":2439500,"balance":-2439500},{"name":"Loans (Liability)","kind":"group","depth":0,"debit":0,"credit":500000,"balance":-500000},{"name":"Unsecured Loans","kind":"group","depth":1,"debit":0,"credit":500000,"balance":-500000},{"name":"Director's Loan","kind":"ledger","depth":2,"debit":0,"credit":500000,"balance":-500000},{"name":"Current Liabilities","kind":"group","depth":0,"debit":0,"credit":679300,"balance":-679300},{"name":"Duties & Taxes","kind":"group","depth":1,"debit":0,"credit":10620,"balance":-10620},{"name":"Input CGST","kind":"ledger","depth":2,"debit":18090,"credit":0,"balance":18090},{"name":"Input SGST","kind":"ledger","depth":2,"debit":18090,"credit":0,"balance":18090},{"name":"Output CGST","kind":"ledger","depth":2,"debit":0,"credit":23400,"balance":-23400},{"name":"Output SGST","kind":"ledger","depth":2,"debit":0,"credit":23400,"balance":-23400},{"name":"Provisions","kind":"group","depth":1,"debit":0,"credit":0,"balance":0},{"name":"Sundry Creditors","kind":"group","depth":1,"debit":0,"credit":668680,"balance":-668680},{"name":"Krishna Yarn Traders","kind":"ledger","depth":2,"debit":0,"credit":96000,"balance":-96000},{"name":"Riddhi Transport","kind":"ledger","depth":2,"debit":0,"credit":18500,"balance":-18500},{"name":"Surat Weaving Mills","kind":"ledger","depth":2,"debit":0,"credit":554180,"balance":-554180},{"name":"Fixed Assets","kind":"group","depth":0,"debit":1282500,"credit":0,"balance":1282500},{"name":"Furniture & Fixtures","kind":"ledger","depth":1,"debit":142500,"credit":0,"balance":142500},{"name":"Plant & Machinery","kind":"ledger","depth":1,"debit":1140000,"credit":0,"balance":1140000},{"name":"Current Assets","kind":"group","depth":0,"debit":3015250,"credit":0,"balance":3015250},{"name":"Bank Accounts","kind":"group","depth":1,"debit":569400,"credit":0,"balance":569400},{"name":"HDFC Bank - Current A/c","kind":"ledger","depth":2,"debit":569400,"credit":0,"balance":569400},{"name":"Cash-in-Hand","kind":"group","depth":1,"debit":182500,"credit":0,"balance":182500},{"name":"Cash","kind":"ledger","depth":2,"debit":182500,"credit":0,"balance":182500},{"name":"Stock-in-Hand","kind":"group","depth":1,"debit":741000,"credit":0,"balance":741000},{"name":"Stock-in-Hand","kind":"ledger","depth":2,"debit":741000,"credit":0,"balance":741000},{"name":"Sundry Debtors","kind":"group","depth":1,"debit":1522350,"credit":0,"balance":1522350},{"name":"Meera Fashion House","kind":"ledger","depth":2,"debit":476900,"credit":0,"balance":476900},{"name":"Nakoda Garments","kind":"ledger","depth":2,"debit":169050,"credit":0,"balance":169050},{"name":"Ravi Textiles","kind":"ledger","depth":2,"debit":533200,"credit":0,"balance":533200},{"name":"Shreeji Boutique","kind":"ledger","depth":2,"debit":343200,"credit":0,"balance":343200},{"name":"Sales Accounts","kind":"group","depth":0,"debit":0,"credit":1619000,"balance":-1619000},{"name":"Sales - Fabric","kind":"ledger","depth":1,"debit":0,"credit":1209000,"balance":-1209000},{"name":"Sales - Garments","kind":"ledger","depth":1,"debit":0,"credit":420000,"balance":-420000},{"name":"Sales Returns","kind":"ledger","depth":1,"debit":10000,"credit":0,"balance":10000},{"name":"Purchase Accounts","kind":"group","depth":0,"debit":564000,"credit":0,"balance":564000},{"name":"Purchase - Fabric","kind":"ledger","depth":1,"debit":450000,"credit":0,"balance":450000},{"name":"Purchase - Garments","kind":"ledger","depth":1,"debit":114000,"credit":0,"balance":114000},{"name":"Indirect Incomes","kind":"group","depth":0,"debit":0,"credit":9600,"balance":-9600},{"name":"Interest Received","kind":"ledger","depth":1,"debit":0,"credit":9600,"balance":-9600},{"name":"Direct Expenses","kind":"group","depth":0,"debit":18500,"credit":0,"balance":18500},{"name":"Freight Inward","kind":"ledger","depth":1,"debit":18500,"credit":0,"balance":18500},{"name":"Indirect Expenses","kind":"group","depth":0,"debit":367150,"credit":0,"balance":367150},{"name":"Bank Charges","kind":"ledger","depth":1,"debit":1250,"credit":0,"balance":1250},{"name":"Depreciation","kind":"ledger","depth":1,"debit":67500,"credit":0,"balance":67500},{"name":"Electricity","kind":"ledger","depth":1,"debit":32400,"credit":0,"balance":32400},{"name":"Printing & Stationery","kind":"ledger","depth":1,"debit":7800,"credit":0,"balance":7800},{"name":"Rent","kind":"ledger","depth":1,"debit":56000,"credit":0,"balance":56000},{"name":"Salary","kind":"ledger","depth":1,"debit":198000,"credit":0,"balance":198000},{"name":"Telephone & Internet","kind":"ledger","depth":1,"debit":4200,"credit":0,"balance":4200}],"totals":{"debit":5293580,"credit":5293580},"balanced":true,"difference":0,"ledgerCount":32},"/api/reports/balance-sheet":{"asOf":"2027-03-31","company":"Surat Weaves Pvt Ltd","liabilities":[{"name":"Capital Account","amount":24395,"signed":-2439500,"ledgers":[{"name":"Share Capital","amount":2439500,"signed":-2439500}],"groups":[]},{"name":"Loans (Liability)","amount":5000,"signed":-500000,"ledgers":[],"groups":[{"name":"Bank OD A/c","amount":0,"ledgers":[]},{"name":"Secured Loans","amount":0,"ledgers":[]},{"name":"Unsecured Loans","amount":500000,"ledgers":[{"name":"Director's Loan","amount":500000,"signed":-500000}]}]},{"name":"Current Liabilities","amount":6793,"signed":-679300,"ledgers":[],"groups":[{"name":"Duties & Taxes","amount":10620,"ledgers":[{"name":"Input CGST","amount":18090,"signed":18090},{"name":"Input SGST","amount":18090,"signed":18090},{"name":"Output CGST","amount":23400,"signed":-23400},{"name":"Output SGST","amount":23400,"signed":-23400}]},{"name":"Provisions","amount":0,"ledgers":[]},{"name":"Sundry Creditors","amount":668680,"ledgers":[{"name":"Krishna Yarn Traders","amount":96000,"signed":-96000},{"name":"Riddhi Transport","amount":18500,"signed":-18500},{"name":"Surat Weaving Mills","amount":554180,"signed":-554180}]}]},{"name":"Profit & Loss A/c","amount":0,"signed":0,"ledgers":[],"groups":[]}],"assets":[{"name":"Fixed Assets","amount":1282500,"signed":1282500,"ledgers":[{"name":"Furniture & Fixtures","amount":142500,"signed":142500},{"name":"Plant & Machinery","amount":1140000,"signed":1140000}],"groups":[]},{"name":"Investments","amount":0,"signed":0,"ledgers":[],"groups":[]},{"name":"Current Assets","amount":2624207,"signed":2624207,"ledgers":[],"groups":[{"name":"Bank Accounts","amount":569400,"ledgers":[{"name":"HDFC Bank - Current A/c","amount":569400,"signed":569400}]},{"name":"Cash-in-Hand","amount":182500,"ledgers":[{"name":"Cash","amount":182500,"signed":182500}]},{"name":"Deposits (Asset)","amount":0,"ledgers":[]},{"name":"Loans & Advances (Asset)","amount":0,"ledgers":[]},{"name":"Sundry Debtors","amount":1522350,"ledgers":[{"name":"Meera Fashion House","amount":476900,"signed":476900},{"name":"Nakoda Garments","amount":169050,"signed":169050},{"name":"Ravi Textiles","amount":533200,"signed":533200},{"name":"Shreeji Boutique","amount":343200,"signed":343200}]},{"name":"Stock-in-Hand","amount":349957,"ledgers":[{"name":"Closing stock (inventory)","amount":349957,"signed":349957}]}]},{"name":"Branch/Divisions","amount":0,"signed":0,"ledgers":[],"groups":[]},{"name":"Misc. Expenses (ASSET)","amount":0,"signed":0,"ledgers":[],"groups":[]},{"name":"Suspense A/c","amount":0,"signed":0,"ledgers":[],"groups":[]}],"profitAndLoss":{"name":"Profit & Loss A/c","amount":287907,"isLoss":false},"reserves":0,"stock":{"onBooks":741000,"closing":349957},"totals":{"liabilities":3906707,"assets":3906707},"balanced":true,"difference":0},"/api/reports/profit-loss":{"from":"2026-04-01","to":"2027-03-31","company":"Surat Weaves Pvt Ltd","directIncome":{"name":"Direct Incomes","rows":[{"name":"Sales Accounts","amount":1619000,"signed":-1619000,"ledgers":[{"name":"Sales - Fabric","amount":1209000,"signed":-1209000},{"name":"Sales - Garments","amount":420000,"signed":-420000},{"name":"Sales Returns","amount":10000,"signed":10000}],"groups":[]},{"name":"Direct Incomes","amount":0,"signed":0,"ledgers":[],"groups":[]},{"name":"Closing Stock","amount":349957,"signed":349957,"ledgers":[],"groups":[]}],"total":1968957},"directExpense":{"name":"Direct Expenses","rows":[{"name":"Purchase Accounts","amount":564000,"signed":564000,"ledgers":[{"name":"Purchase - Fabric","amount":450000,"signed":450000},{"name":"Purchase - Garments","amount":114000,"signed":114000}],"groups":[]},{"name":"Direct Expenses","amount":18500,"signed":18500,"ledgers":[{"name":"Freight Inward","amount":18500,"signed":18500}],"groups":[]},{"name":"Opening Stock","amount":741000,"signed":741000,"ledgers":[],"groups":[]}],"total":1323500},"grossProfit":645457,"indirectIncome":{"name":"Indirect Incomes","rows":[{"name":"Indirect Incomes","amount":9600,"signed":-9600,"ledgers":[{"name":"Interest Received","amount":9600,"signed":-9600}],"groups":[]}],"total":9600},"indirectExpense":{"name":"Indirect Expenses","rows":[{"name":"Indirect Expenses","amount":367150,"signed":367150,"ledgers":[{"name":"Bank Charges","amount":1250,"signed":1250},{"name":"Depreciation","amount":67500,"signed":67500},{"name":"Electricity","amount":32400,"signed":32400},{"name":"Printing & Stationery","amount":7800,"signed":7800},{"name":"Rent","amount":56000,"signed":56000},{"name":"Salary","amount":198000,"signed":198000},{"name":"Telephone & Internet","amount":4200,"signed":4200}],"groups":[]}],"total":367150},"netProfit":287907,"isLoss":false,"stock":{"opening":741000,"closing":349957}},"/api/reports/day-book":{"date":"2026-10-20","company":"Surat Weaves Pvt Ltd","vouchers":[{"id":35,"type":"JOURNAL","typeName":"Journal","number":"JRN-0004","narration":"Half-yearly depreciation on plant and furniture","party":null,"total":67500,"debitLedgers":[{"ledger":"Depreciation","amount":67500}],"creditLedgers":[{"ledger":"Plant & Machinery","amount":60000},{"ledger":"Furniture & Fixtures","amount":7500}]}],"totals":{"debit":67500,"credit":67500},"count":1},"/api/reports/outstanding":{"asOf":"2027-03-31","type":"receivable","group":"Sundry Debtors","parties":[{"id":8,"name":"Ravi Textiles","balance":533200,"creditDays":30,"bills":[{"date":"2026-04-01","number":"Opening balance","type":"Opening","billRef":null,"amount":125000,"ageDays":364,"bucket":"older"},{"date":"2026-04-03","number":"SAL-0001","type":"Sales","billRef":null,"amount":193200,"ageDays":362,"bucket":"older"},{"date":"2026-06-18","number":"RCP-0002","type":"Receipt","billRef":null,"amount":-126000,"ageDays":286,"bucket":"older"},{"date":"2026-07-04","number":"SAL-0005","type":"Sales","billRef":null,"amount":315000,"ageDays":270,"bucket":"older"},{"date":"2026-10-07","number":"RCP-0005","type":"Receipt","billRef":null,"amount":-100000,"ageDays":175,"bucket":"d90"},{"date":"2026-10-10","number":"SAL-0008","type":"Sales","billRef":null,"amount":126000,"ageDays":172,"bucket":"d90"}]},{"id":9,"name":"Meera Fashion House","balance":476900,"creditDays":30,"bills":[{"date":"2026-04-01","number":"Opening balance","type":"Opening","billRef":null,"amount":86500,"ageDays":364,"bucket":"older"},{"date":"2026-04-12","number":"RCP-0001","type":"Receipt","billRef":null,"amount":-80000,"ageDays":353,"bucket":"older"},{"date":"2026-05-06","number":"SAL-0002","type":"Sales","billRef":null,"amount":134400,"ageDays":329,"bucket":"older"},{"date":"2026-08-11","number":"SAL-0006","type":"Sales","billRef":null,"amount":336000,"ageDays":232,"bucket":"older"}]},{"id":11,"name":"Shreeji Boutique","balance":343200,"creditDays":30,"bills":[{"date":"2026-06-08","number":"SAL-0004","type":"Sales","billRef":null,"amount":403200,"ageDays":296,"bucket":"older"},{"date":"2026-08-22","number":"RCP-0004","type":"Receipt","billRef":null,"amount":-60000,"ageDays":221,"bucket":"older"}]},{"id":10,"name":"Nakoda Garments","balance":169050,"creditDays":30,"bills":[{"date":"2026-04-01","number":"Opening balance","type":"Opening","billRef":null,"amount":42000,"ageDays":364,"bucket":"older"},{"date":"2026-05-14","number":"SAL-0003","type":"Sales","billRef":null,"amount":131250,"ageDays":321,"bucket":"older"},{"date":"2026-07-10","number":"CRN-0001","type":"Credit Note","billRef":null,"amount":-10500,"ageDays":264,"bucket":"older"},{"date":"2026-07-15","number":"RCP-0003","type":"Receipt","billRef":null,"amount":-94500,"ageDays":259,"bucket":"older"},{"date":"2026-09-05","number":"SAL-0007","type":"Sales","billRef":null,"amount":100800,"ageDays":207,"bucket":"older"}]}],"total":1522350,"ageing":{"current":0,"d30":0,"d60":0,"d90":26000,"older":1496350}},"/api/reports/stock-summary":{"asOf":"2027-03-31","company":"Surat Weaves Pvt Ltd","rows":[{"id":1,"name":"Cotton Fabric 44in","group":"Fabric","unit":"Mtr","gstRate":5,"openingQty":2400,"inwardQty":5300,"outwardQty":6600,"closingQty":1100,"rate":83.37,"value":91707},{"id":2,"name":"Linen Fabric 58in","group":"Fabric","unit":"Mtr","gstRate":5,"openingQty":1200,"inwardQty":0,"outwardQty":850,"closingQty":350,"rate":120,"value":42000},{"id":3,"name":"Stitched Shirt","group":"Garments","unit":"Pcs","gstRate":12,"openingQty":900,"inwardQty":300,"outwardQty":700,"closingQty":500,"rate":432.5,"value":216250}],"totalValue":349957},"/api/reports/gst-summary":{"from":"2026-04-01","to":"2027-03-31","lines":[{"ledger":"Input CGST","tax":"CGST","kind":"input","amount":18090,"signed":18090},{"ledger":"Input SGST","tax":"SGST","kind":"input","amount":18090,"signed":18090},{"ledger":"Output CGST","tax":"CGST","kind":"output","amount":23400,"signed":-23400},{"ledger":"Output SGST","tax":"SGST","kind":"output","amount":23400,"signed":-23400}],"outputTotal":46800,"inputTotal":36180,"netPayable":10620},"/api/health":{"ok":true,"database":"(snapshot)","statistics":{"company":{"id":1,"name":"Surat Weaves Pvt Ltd","mailingName":"Surat Weaves Pvt Ltd","address":"14, Ring Road, Textile Market, Surat 395002, Gujarat","gstin":"24AABCS4321P1Z9","state":"Gujarat","financialYearStart":"2026-04-01","financialYearEnd":"2027-03-31","baseCurrency":"INR"},"counts":{"ledgers":37,"vouchers":35,"groups":28,"stockItems":3},"cashInHand":182500,"bankBalance":569400,"debtors":1522350,"creditors":668680,"netProfit":287907}},"/api/reports/ledger/5":{"ledger":{"id":5,"name":"HDFC Bank - Current A/c","group":"Bank Accounts"},"from":"2026-04-01","to":"2027-03-31","opening":850000,"openingType":"Dr","entries":[{"voucherId":3,"date":"2026-04-12","type":"Receipt","number":"RCP-0001","particulars":"Meera Fashion House","narration":"Part payment received by NEFT","billRef":null,"debit":80000,"credit":0,"balance":930000},{"voucherId":4,"date":"2026-04-15","type":"Payment","number":"PAY-0001","particulars":"Surat Weaving Mills","narration":"Part payment against SWM/2081","billRef":null,"debit":0,"credit":100000,"balance":830000},{"voucherId":9,"date":"2026-05-02","type":"Contra","number":"CON-0001","particulars":"Cash","narration":"Cash withdrawn from bank for shop expenses","billRef":null,"debit":0,"credit":25000,"balance":805000},{"voucherId":10,"date":"2026-05-05","type":"Payment","number":"PAY-0002","particulars":"Rent","narration":"Shop rent for May","billRef":null,"debit":0,"credit":28000,"balance":777000},{"voucherId":11,"date":"2026-05-31","type":"Payment","number":"PAY-0003","particulars":"Salary Payable","narration":"April salary paid","billRef":null,"debit":0,"credit":96000,"balance":681000},{"voucherId":13,"date":"2026-06-18","type":"Receipt","number":"RCP-0002","particulars":"Ravi Textiles","narration":"Receipt against RT/104","billRef":null,"debit":126000,"credit":0,"balance":807000},{"voucherId":14,"date":"2026-06-20","type":"Payment","number":"PAY-0004","particulars":"Dye Master Processors","narration":"Processing charges paid","billRef":null,"debit":0,"credit":54000,"balance":753000},{"voucherId":15,"date":"2026-06-20","type":"Payment","number":"PAY-0005","particulars":"Output CGST, Output SGST","narration":"GST for April paid in cash","billRef":null,"debit":0,"credit":9200,"balance":743800},{"voucherId":21,"date":"2026-07-20","type":"Payment","number":"PAY-0007","particulars":"Electricity","narration":"Electricity bill (April to June)","billRef":null,"debit":0,"credit":32400,"balance":711400},{"voucherId":22,"date":"2026-07-31","type":"Payment","number":"PAY-0008","particulars":"Bank Charges","narration":"Bank charges for the quarter","billRef":null,"debit":0,"credit":1250,"balance":710150},{"voucherId":26,"date":"2026-08-22","type":"Receipt","number":"RCP-0004","particulars":"Shreeji Boutique","narration":"Advance received for October shipment","billRef":null,"debit":60000,"credit":0,"balance":770150},{"voucherId":27,"date":"2026-08-28","type":"Payment","number":"PAY-0009","particulars":"Krishna Yarn Traders","narration":"Cleared KY/455","billRef":null,"debit":0,"credit":126000,"balance":644150},{"voucherId":30,"date":"2026-09-12","type":"Payment","number":"PAY-0011","particulars":"Output CGST, Output SGST","narration":"GST for May to July paid (input credit carried forward)","billRef":null,"debit":0,"credit":54350,"balance":589800},{"voucherId":31,"date":"2026-09-30","type":"Payment","number":"PAY-0012","particulars":"Rent, Salary","narration":"September rent and salary","billRef":null,"debit":0,"credit":130000,"balance":459800},{"voucherId":32,"date":"2026-10-07","type":"Receipt","number":"RCP-0005","particulars":"Ravi Textiles","narration":"Receipt against RT/119","billRef":null,"debit":100000,"credit":0,"balance":559800},{"voucherId":33,"date":"2026-10-15","type":"Journal","number":"JRN-0003","particulars":"Interest Received","narration":"Interest received on fixed deposit","billRef":null,"debit":9600,"credit":0,"balance":569400}],"totals":{"debit":3756,"credit":6562},"closing":569400,"closingType":"Dr"},"/api/reports/ledger/1":{"ledger":{"id":1,"name":"Share Capital","group":"Capital Account"},"from":"2026-04-01","to":"2027-03-31","opening":-2439500,"openingType":"Cr","entries":[],"totals":{"debit":0,"credit":0},"closing":-2439500,"closingType":"Cr"},"/api/reports/ledger/6":{"ledger":{"id":6,"name":"Cash","group":"Cash-in-Hand"},"from":"2026-04-01","to":"2027-03-31","opening":75000,"openingType":"Dr","entries":[{"voucherId":9,"date":"2026-05-02","type":"Contra","number":"CON-0001","particulars":"HDFC Bank - Current A/c","narration":"Cash withdrawn from bank for shop expenses","billRef":null,"debit":25000,"credit":0,"balance":100000},{"voucherId":17,"date":"2026-06-30","type":"Payment","number":"PAY-0006","particulars":"Telephone & Internet","narration":"Monthly telephone and internet","billRef":null,"debit":0,"credit":4200,"balance":95800},{"voucherId":20,"date":"2026-07-15","type":"Receipt","number":"RCP-0003","particulars":"Nakoda Garments","narration":"Balance received in cash","billRef":null,"debit":94500,"credit":0,"balance":190300},{"voucherId":28,"date":"2026-08-31","type":"Payment","number":"PAY-0010","particulars":"Printing & Stationery","narration":"Printing and stationery for the season","billRef":null,"debit":0,"credit":7800,"balance":182500}],"totals":{"debit":1195,"credit":120},"closing":182500,"closingType":"Dr"},"/api/reports/ledger/29":{"ledger":{"id":29,"name":"Freight Inward","group":"Direct Expenses"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":16,"date":"2026-06-30","type":"Journal","number":"JRN-0002","particulars":"Riddhi Transport","narration":"Freight inward billed by transporter","billRef":null,"debit":18500,"credit":0,"balance":18500}],"totals":{"debit":185,"credit":0},"closing":18500,"closingType":"Dr"},"/api/reports/ledger/20":{"ledger":{"id":20,"name":"GST Payable","group":"Duties & Taxes"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[],"totals":{"debit":0,"credit":0},"closing":0,"closingType":"Dr"},"/api/reports/ledger/18":{"ledger":{"id":18,"name":"Input CGST","group":"Duties & Taxes"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":2,"date":"2026-04-05","type":"Purchase","number":"PUR-0001","particulars":"Purchase - Fabric, Input SGST, Surat Weaving Mills","narration":"Grey fabric purchase - bill SWM/2081","billRef":null,"debit":3750,"credit":0,"balance":3750},{"voucherId":8,"date":"2026-05-18","type":"Purchase","number":"PUR-0002","particulars":"Purchase - Fabric, Input SGST, Krishna Yarn Traders","narration":"Yarn purchase - bill KY/455","billRef":null,"debit":3000,"credit":0,"balance":6750},{"voucherId":23,"date":"2026-08-02","type":"Purchase","number":"PUR-0003","particulars":"Purchase - Fabric, Input SGST, Surat Weaving Mills","narration":"Grey fabric purchase - bill SWM/2140","billRef":null,"debit":4500,"credit":0,"balance":11250},{"voucherId":24,"date":"2026-08-05","type":"Purchase","number":"PUR-0004","particulars":"Purchase - Garments, Input SGST, Surat Weaving Mills","narration":"Readymade shirt purchase - bill SWM/2177","billRef":null,"debit":6840,"credit":0,"balance":18090}],"totals":{"debit":180.9,"credit":0},"closing":18090,"closingType":"Dr"},"/api/reports/ledger/19":{"ledger":{"id":19,"name":"Input SGST","group":"Duties & Taxes"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":2,"date":"2026-04-05","type":"Purchase","number":"PUR-0001","particulars":"Purchase - Fabric, Input CGST, Surat Weaving Mills","narration":"Grey fabric purchase - bill SWM/2081","billRef":null,"debit":3750,"credit":0,"balance":3750},{"voucherId":8,"date":"2026-05-18","type":"Purchase","number":"PUR-0002","particulars":"Purchase - Fabric, Input CGST, Krishna Yarn Traders","narration":"Yarn purchase - bill KY/455","billRef":null,"debit":3000,"credit":0,"balance":6750},{"voucherId":23,"date":"2026-08-02","type":"Purchase","number":"PUR-0003","particulars":"Purchase - Fabric, Input CGST, Surat Weaving Mills","narration":"Grey fabric purchase - bill SWM/2140","billRef":null,"debit":4500,"credit":0,"balance":11250},{"voucherId":24,"date":"2026-08-05","type":"Purchase","number":"PUR-0004","particulars":"Purchase - Garments, Input CGST, Surat Weaving Mills","narration":"Readymade shirt purchase - bill SWM/2177","billRef":null,"debit":6840,"credit":0,"balance":18090}],"totals":{"debit":180.9,"credit":0},"closing":18090,"closingType":"Dr"},"/api/reports/ledger/16":{"ledger":{"id":16,"name":"Output CGST","group":"Duties & Taxes"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":1,"date":"2026-04-03","type":"Sales","number":"SAL-0001","particulars":"Ravi Textiles, Sales - Fabric, Output SGST","narration":"Fabric supply - invoice RT/104","billRef":null,"debit":0,"credit":4600,"balance":-4600},{"voucherId":6,"date":"2026-05-06","type":"Sales","number":"SAL-0002","particulars":"Meera Fashion House, Sales - Garments, Output SGST","narration":"Garment supply - invoice MF/77","billRef":null,"debit":0,"credit":7200,"balance":-11800},{"voucherId":7,"date":"2026-05-14","type":"Sales","number":"SAL-0003","particulars":"Nakoda Garments, Sales - Fabric, Output SGST","narration":"Fabric supply - invoice NG/31","billRef":null,"debit":0,"credit":3125,"balance":-14925},{"voucherId":12,"date":"2026-06-08","type":"Sales","number":"SAL-0004","particulars":"Shreeji Boutique, Sales - Fabric, Output SGST","narration":"Fabric supply - invoice SB/12","billRef":null,"debit":0,"credit":9600,"balance":-24525},{"voucherId":15,"date":"2026-06-20","type":"Payment","number":"PAY-0005","particulars":"Output SGST, HDFC Bank - Current A/c","narration":"GST for April paid in cash","billRef":null,"debit":4600,"credit":0,"balance":-19925},{"voucherId":18,"date":"2026-07-04","type":"Sales","number":"SAL-0005","particulars":"Ravi Textiles, Sales - Fabric, Output SGST","narration":"Repeat order - invoice RT/119","billRef":null,"debit":0,"credit":7500,"balance":-27425},{"voucherId":19,"date":"2026-07-10","type":"Credit Note","number":"CRN-0001","particulars":"Nakoda Garments, Sales Returns, Output SGST","narration":"Shade mismatch return against NG/31","billRef":null,"debit":250,"credit":0,"balance":-27175},{"voucherId":25,"date":"2026-08-11","type":"Sales","number":"SAL-0006","particulars":"Meera Fashion House, Sales - Garments, Output SGST","narration":"Festive season supply - MF/96","billRef":null,"debit":0,"credit":18000,"balance":-45175},{"voucherId":29,"date":"2026-09-05","type":"Sales","number":"SAL-0007","particulars":"Nakoda Garments, Sales - Fabric, Output SGST","narration":"Fabric supply - NG/58","billRef":null,"debit":0,"credit":2400,"balance":-47575},{"voucherId":30,"date":"2026-09-12","type":"Payment","number":"PAY-0011","particulars":"Output SGST, HDFC Bank - Current A/c","narration":"GST for May to July paid (input credit carried forward)","billRef":null,"debit":27175,"credit":0,"balance":-20400},{"voucherId":34,"date":"2026-10-10","type":"Sales","number":"SAL-0008","particulars":"Ravi Textiles, Sales - Fabric, Output SGST","narration":"Diwali stock supply - invoice RT/131","billRef":null,"debit":0,"credit":3000,"balance":-23400}],"totals":{"debit":320.25,"credit":554.25},"closing":-23400,"closingType":"Cr"},"/api/reports/ledger/17":{"ledger":{"id":17,"name":"Output SGST","group":"Duties & Taxes"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":1,"date":"2026-04-03","type":"Sales","number":"SAL-0001","particulars":"Ravi Textiles, Sales - Fabric, Output CGST","narration":"Fabric supply - invoice RT/104","billRef":null,"debit":0,"credit":4600,"balance":-4600},{"voucherId":6,"date":"2026-05-06","type":"Sales","number":"SAL-0002","particulars":"Meera Fashion House, Sales - Garments, Output CGST","narration":"Garment supply - invoice MF/77","billRef":null,"debit":0,"credit":7200,"balance":-11800},{"voucherId":7,"date":"2026-05-14","type":"Sales","number":"SAL-0003","particulars":"Nakoda Garments, Sales - Fabric, Output CGST","narration":"Fabric supply - invoice NG/31","billRef":null,"debit":0,"credit":3125,"balance":-14925},{"voucherId":12,"date":"2026-06-08","type":"Sales","number":"SAL-0004","particulars":"Shreeji Boutique, Sales - Fabric, Output CGST","narration":"Fabric supply - invoice SB/12","billRef":null,"debit":0,"credit":9600,"balance":-24525},{"voucherId":15,"date":"2026-06-20","type":"Payment","number":"PAY-0005","particulars":"Output CGST, HDFC Bank - Current A/c","narration":"GST for April paid in cash","billRef":null,"debit":4600,"credit":0,"balance":-19925},{"voucherId":18,"date":"2026-07-04","type":"Sales","number":"SAL-0005","particulars":"Ravi Textiles, Sales - Fabric, Output CGST","narration":"Repeat order - invoice RT/119","billRef":null,"debit":0,"credit":7500,"balance":-27425},{"voucherId":19,"date":"2026-07-10","type":"Credit Note","number":"CRN-0001","particulars":"Nakoda Garments, Sales Returns, Output CGST","narration":"Shade mismatch return against NG/31","billRef":null,"debit":250,"credit":0,"balance":-27175},{"voucherId":25,"date":"2026-08-11","type":"Sales","number":"SAL-0006","particulars":"Meera Fashion House, Sales - Garments, Output CGST","narration":"Festive season supply - MF/96","billRef":null,"debit":0,"credit":18000,"balance":-45175},{"voucherId":29,"date":"2026-09-05","type":"Sales","number":"SAL-0007","particulars":"Nakoda Garments, Sales - Fabric, Output CGST","narration":"Fabric supply - NG/58","billRef":null,"debit":0,"credit":2400,"balance":-47575},{"voucherId":30,"date":"2026-09-12","type":"Payment","number":"PAY-0011","particulars":"Output CGST, HDFC Bank - Current A/c","narration":"GST for May to July paid (input credit carried forward)","billRef":null,"debit":27175,"credit":0,"balance":-20400},{"voucherId":34,"date":"2026-10-10","type":"Sales","number":"SAL-0008","particulars":"Ravi Textiles, Sales - Fabric, Output CGST","narration":"Diwali stock supply - invoice RT/131","billRef":null,"debit":0,"credit":3000,"balance":-23400}],"totals":{"debit":320.25,"credit":554.25},"closing":-23400,"closingType":"Cr"},"/api/reports/ledger/4":{"ledger":{"id":4,"name":"Furniture & Fixtures","group":"Fixed Assets"},"from":"2026-04-01","to":"2027-03-31","opening":150000,"openingType":"Dr","entries":[{"voucherId":35,"date":"2026-10-20","type":"Journal","number":"JRN-0004","particulars":"Depreciation, Plant & Machinery","narration":"Half-yearly depreciation on plant and furniture","billRef":null,"debit":0,"credit":7500,"balance":142500}],"totals":{"debit":0,"credit":75},"closing":142500,"closingType":"Dr"},"/api/reports/ledger/3":{"ledger":{"id":3,"name":"Plant & Machinery","group":"Fixed Assets"},"from":"2026-04-01","to":"2027-03-31","opening":1200000,"openingType":"Dr","entries":[{"voucherId":35,"date":"2026-10-20","type":"Journal","number":"JRN-0004","particulars":"Depreciation, Furniture & Fixtures","narration":"Half-yearly depreciation on plant and furniture","billRef":null,"debit":0,"credit":60000,"balance":1140000}],"totals":{"debit":0,"credit":600},"closing":1140000,"closingType":"Dr"},"/api/reports/ledger/35":{"ledger":{"id":35,"name":"Bank Charges","group":"Indirect Expenses"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":22,"date":"2026-07-31","type":"Payment","number":"PAY-0008","particulars":"HDFC Bank - Current A/c","narration":"Bank charges for the quarter","billRef":null,"debit":1250,"credit":0,"balance":1250}],"totals":{"debit":12.5,"credit":0},"closing":1250,"closingType":"Dr"},"/api/reports/ledger/37":{"ledger":{"id":37,"name":"Depreciation","group":"Indirect Expenses"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":35,"date":"2026-10-20","type":"Journal","number":"JRN-0004","particulars":"Plant & Machinery, Furniture & Fixtures","narration":"Half-yearly depreciation on plant and furniture","billRef":null,"debit":67500,"credit":0,"balance":67500}],"totals":{"debit":675,"credit":0},"closing":67500,"closingType":"Dr"},"/api/reports/ledger/32":{"ledger":{"id":32,"name":"Electricity","group":"Indirect Expenses"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":21,"date":"2026-07-20","type":"Payment","number":"PAY-0007","particulars":"HDFC Bank - Current A/c","narration":"Electricity bill (April to June)","billRef":null,"debit":32400,"credit":0,"balance":32400}],"totals":{"debit":324,"credit":0},"closing":32400,"closingType":"Dr"},"/api/reports/ledger/36":{"ledger":{"id":36,"name":"Printing & Stationery","group":"Indirect Expenses"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":28,"date":"2026-08-31","type":"Payment","number":"PAY-0010","particulars":"Cash","narration":"Printing and stationery for the season","billRef":null,"debit":7800,"credit":0,"balance":7800}],"totals":{"debit":78,"credit":0},"closing":7800,"closingType":"Dr"},"/api/reports/ledger/31":{"ledger":{"id":31,"name":"Rent","group":"Indirect Expenses"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":10,"date":"2026-05-05","type":"Payment","number":"PAY-0002","particulars":"HDFC Bank - Current A/c","narration":"Shop rent for May","billRef":null,"debit":28000,"credit":0,"balance":28000},{"voucherId":31,"date":"2026-09-30","type":"Payment","number":"PAY-0012","particulars":"Salary, HDFC Bank - Current A/c","narration":"September rent and salary","billRef":null,"debit":28000,"credit":0,"balance":56000}],"totals":{"debit":560,"credit":0},"closing":56000,"closingType":"Dr"},"/api/reports/ledger/30":{"ledger":{"id":30,"name":"Salary","group":"Indirect Expenses"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":5,"date":"2026-04-30","type":"Journal","number":"JRN-0001","particulars":"Salary Payable","narration":"April salary booked, payable on the 7th","billRef":null,"debit":96000,"credit":0,"balance":96000},{"voucherId":31,"date":"2026-09-30","type":"Payment","number":"PAY-0012","particulars":"Rent, HDFC Bank - Current A/c","narration":"September rent and salary","billRef":null,"debit":102000,"credit":0,"balance":198000}],"totals":{"debit":1980,"credit":0},"closing":198000,"closingType":"Dr"},"/api/reports/ledger/34":{"ledger":{"id":34,"name":"Telephone & Internet","group":"Indirect Expenses"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":17,"date":"2026-06-30","type":"Payment","number":"PAY-0006","particulars":"Cash","narration":"Monthly telephone and internet","billRef":null,"debit":4200,"credit":0,"balance":4200}],"totals":{"debit":42,"credit":0},"closing":4200,"closingType":"Dr"},"/api/reports/ledger/33":{"ledger":{"id":33,"name":"Transport Charges","group":"Indirect Expenses"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[],"totals":{"debit":0,"credit":0},"closing":0,"closingType":"Dr"},"/api/reports/ledger/27":{"ledger":{"id":27,"name":"Discount Received","group":"Indirect Incomes"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[],"totals":{"debit":0,"credit":0},"closing":0,"closingType":"Dr"},"/api/reports/ledger/28":{"ledger":{"id":28,"name":"Interest Received","group":"Indirect Incomes"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":33,"date":"2026-10-15","type":"Journal","number":"JRN-0003","particulars":"HDFC Bank - Current A/c","narration":"Interest received on fixed deposit","billRef":null,"debit":0,"credit":9600,"balance":-9600}],"totals":{"debit":0,"credit":96},"closing":-9600,"closingType":"Cr"},"/api/reports/ledger/21":{"ledger":{"id":21,"name":"Salary Payable","group":"Provisions"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":5,"date":"2026-04-30","type":"Journal","number":"JRN-0001","particulars":"Salary","narration":"April salary booked, payable on the 7th","billRef":null,"debit":0,"credit":96000,"balance":-96000},{"voucherId":11,"date":"2026-05-31","type":"Payment","number":"PAY-0003","particulars":"HDFC Bank - Current A/c","narration":"April salary paid","billRef":null,"debit":96000,"credit":0,"balance":0}],"totals":{"debit":960,"credit":960},"closing":0,"closingType":"Dr"},"/api/reports/ledger/25":{"ledger":{"id":25,"name":"Purchase - Fabric","group":"Purchase Accounts"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":2,"date":"2026-04-05","type":"Purchase","number":"PUR-0001","particulars":"Input CGST, Input SGST, Surat Weaving Mills","narration":"Grey fabric purchase - bill SWM/2081","billRef":null,"debit":150000,"credit":0,"balance":150000},{"voucherId":8,"date":"2026-05-18","type":"Purchase","number":"PUR-0002","particulars":"Input CGST, Input SGST, Krishna Yarn Traders","narration":"Yarn purchase - bill KY/455","billRef":null,"debit":120000,"credit":0,"balance":270000},{"voucherId":23,"date":"2026-08-02","type":"Purchase","number":"PUR-0003","particulars":"Input CGST, Input SGST, Surat Weaving Mills","narration":"Grey fabric purchase - bill SWM/2140","billRef":null,"debit":180000,"credit":0,"balance":450000}],"totals":{"debit":4500,"credit":0},"closing":450000,"closingType":"Dr"},"/api/reports/ledger/26":{"ledger":{"id":26,"name":"Purchase - Garments","group":"Purchase Accounts"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":24,"date":"2026-08-05","type":"Purchase","number":"PUR-0004","particulars":"Input CGST, Input SGST, Surat Weaving Mills","narration":"Readymade shirt purchase - bill SWM/2177","billRef":null,"debit":114000,"credit":0,"balance":114000}],"totals":{"debit":1140,"credit":0},"closing":114000,"closingType":"Dr"},"/api/reports/ledger/22":{"ledger":{"id":22,"name":"Sales - Fabric","group":"Sales Accounts"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":1,"date":"2026-04-03","type":"Sales","number":"SAL-0001","particulars":"Ravi Textiles, Output CGST, Output SGST","narration":"Fabric supply - invoice RT/104","billRef":null,"debit":0,"credit":184000,"balance":-184000},{"voucherId":7,"date":"2026-05-14","type":"Sales","number":"SAL-0003","particulars":"Nakoda Garments, Output CGST, Output SGST","narration":"Fabric supply - invoice NG/31","billRef":null,"debit":0,"credit":125000,"balance":-309000},{"voucherId":12,"date":"2026-06-08","type":"Sales","number":"SAL-0004","particulars":"Shreeji Boutique, Output CGST, Output SGST","narration":"Fabric supply - invoice SB/12","billRef":null,"debit":0,"credit":384000,"balance":-693000},{"voucherId":18,"date":"2026-07-04","type":"Sales","number":"SAL-0005","particulars":"Ravi Textiles, Output CGST, Output SGST","narration":"Repeat order - invoice RT/119","billRef":null,"debit":0,"credit":300000,"balance":-993000},{"voucherId":29,"date":"2026-09-05","type":"Sales","number":"SAL-0007","particulars":"Nakoda Garments, Output CGST, Output SGST","narration":"Fabric supply - NG/58","billRef":null,"debit":0,"credit":96000,"balance":-1089000},{"voucherId":34,"date":"2026-10-10","type":"Sales","number":"SAL-0008","particulars":"Ravi Textiles, Output CGST, Output SGST","narration":"Diwali stock supply - invoice RT/131","billRef":null,"debit":0,"credit":120000,"balance":-1209000}],"totals":{"debit":0,"credit":12090},"closing":-1209000,"closingType":"Cr"},"/api/reports/ledger/23":{"ledger":{"id":23,"name":"Sales - Garments","group":"Sales Accounts"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":6,"date":"2026-05-06","type":"Sales","number":"SAL-0002","particulars":"Meera Fashion House, Output CGST, Output SGST","narration":"Garment supply - invoice MF/77","billRef":null,"debit":0,"credit":120000,"balance":-120000},{"voucherId":25,"date":"2026-08-11","type":"Sales","number":"SAL-0006","particulars":"Meera Fashion House, Output CGST, Output SGST","narration":"Festive season supply - MF/96","billRef":null,"debit":0,"credit":300000,"balance":-420000}],"totals":{"debit":0,"credit":4200},"closing":-420000,"closingType":"Cr"},"/api/reports/ledger/24":{"ledger":{"id":24,"name":"Sales Returns","group":"Sales Accounts"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":19,"date":"2026-07-10","type":"Credit Note","number":"CRN-0001","particulars":"Nakoda Garments, Output CGST, Output SGST","narration":"Shade mismatch return against NG/31","billRef":null,"debit":10000,"credit":0,"balance":10000}],"totals":{"debit":100,"credit":0},"closing":10000,"closingType":"Dr"},"/api/reports/ledger/7":{"ledger":{"id":7,"name":"Stock-in-Hand","group":"Stock-in-Hand"},"from":"2026-04-01","to":"2027-03-31","opening":741000,"openingType":"Dr","entries":[],"totals":{"debit":0,"credit":0},"closing":741000,"closingType":"Dr"},"/api/reports/ledger/14":{"ledger":{"id":14,"name":"Dye Master Processors","group":"Sundry Creditors"},"from":"2026-04-01","to":"2027-03-31","opening":-54000,"openingType":"Cr","entries":[{"voucherId":14,"date":"2026-06-20","type":"Payment","number":"PAY-0004","particulars":"HDFC Bank - Current A/c","narration":"Processing charges paid","billRef":null,"debit":54000,"credit":0,"balance":0}],"totals":{"debit":540,"credit":0},"closing":0,"closingType":"Dr"},"/api/reports/ledger/13":{"ledger":{"id":13,"name":"Krishna Yarn Traders","group":"Sundry Creditors"},"from":"2026-04-01","to":"2027-03-31","opening":-96000,"openingType":"Cr","entries":[{"voucherId":8,"date":"2026-05-18","type":"Purchase","number":"PUR-0002","particulars":"Purchase - Fabric, Input CGST, Input SGST","narration":"Yarn purchase - bill KY/455","billRef":null,"debit":0,"credit":126000,"balance":-222000},{"voucherId":27,"date":"2026-08-28","type":"Payment","number":"PAY-0009","particulars":"HDFC Bank - Current A/c","narration":"Cleared KY/455","billRef":null,"debit":126000,"credit":0,"balance":-96000}],"totals":{"debit":1260,"credit":1260},"closing":-96000,"closingType":"Cr"},"/api/reports/ledger/15":{"ledger":{"id":15,"name":"Riddhi Transport","group":"Sundry Creditors"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":16,"date":"2026-06-30","type":"Journal","number":"JRN-0002","particulars":"Freight Inward","narration":"Freight inward billed by transporter","billRef":null,"debit":0,"credit":18500,"balance":-18500}],"totals":{"debit":0,"credit":185},"closing":-18500,"closingType":"Cr"},"/api/reports/ledger/12":{"ledger":{"id":12,"name":"Surat Weaving Mills","group":"Sundry Creditors"},"from":"2026-04-01","to":"2027-03-31","opening":-180000,"openingType":"Cr","entries":[{"voucherId":2,"date":"2026-04-05","type":"Purchase","number":"PUR-0001","particulars":"Purchase - Fabric, Input CGST, Input SGST","narration":"Grey fabric purchase - bill SWM/2081","billRef":null,"debit":0,"credit":157500,"balance":-337500},{"voucherId":4,"date":"2026-04-15","type":"Payment","number":"PAY-0001","particulars":"HDFC Bank - Current A/c","narration":"Part payment against SWM/2081","billRef":null,"debit":100000,"credit":0,"balance":-237500},{"voucherId":23,"date":"2026-08-02","type":"Purchase","number":"PUR-0003","particulars":"Purchase - Fabric, Input CGST, Input SGST","narration":"Grey fabric purchase - bill SWM/2140","billRef":null,"debit":0,"credit":189000,"balance":-426500},{"voucherId":24,"date":"2026-08-05","type":"Purchase","number":"PUR-0004","particulars":"Purchase - Garments, Input CGST, Input SGST","narration":"Readymade shirt purchase - bill SWM/2177","billRef":null,"debit":0,"credit":127680,"balance":-554180}],"totals":{"debit":1000,"credit":4741.8},"closing":-554180,"closingType":"Cr"},"/api/reports/ledger/9":{"ledger":{"id":9,"name":"Meera Fashion House","group":"Sundry Debtors"},"from":"2026-04-01","to":"2027-03-31","opening":86500,"openingType":"Dr","entries":[{"voucherId":3,"date":"2026-04-12","type":"Receipt","number":"RCP-0001","particulars":"HDFC Bank - Current A/c","narration":"Part payment received by NEFT","billRef":null,"debit":0,"credit":80000,"balance":6500},{"voucherId":6,"date":"2026-05-06","type":"Sales","number":"SAL-0002","particulars":"Sales - Garments, Output CGST, Output SGST","narration":"Garment supply - invoice MF/77","billRef":null,"debit":134400,"credit":0,"balance":140900},{"voucherId":25,"date":"2026-08-11","type":"Sales","number":"SAL-0006","particulars":"Sales - Garments, Output CGST, Output SGST","narration":"Festive season supply - MF/96","billRef":null,"debit":336000,"credit":0,"balance":476900}],"totals":{"debit":4704,"credit":800},"closing":476900,"closingType":"Dr"},"/api/reports/ledger/10":{"ledger":{"id":10,"name":"Nakoda Garments","group":"Sundry Debtors"},"from":"2026-04-01","to":"2027-03-31","opening":42000,"openingType":"Dr","entries":[{"voucherId":7,"date":"2026-05-14","type":"Sales","number":"SAL-0003","particulars":"Sales - Fabric, Output CGST, Output SGST","narration":"Fabric supply - invoice NG/31","billRef":null,"debit":131250,"credit":0,"balance":173250},{"voucherId":19,"date":"2026-07-10","type":"Credit Note","number":"CRN-0001","particulars":"Sales Returns, Output CGST, Output SGST","narration":"Shade mismatch return against NG/31","billRef":null,"debit":0,"credit":10500,"balance":162750},{"voucherId":20,"date":"2026-07-15","type":"Receipt","number":"RCP-0003","particulars":"Cash","narration":"Balance received in cash","billRef":null,"debit":0,"credit":94500,"balance":68250},{"voucherId":29,"date":"2026-09-05","type":"Sales","number":"SAL-0007","particulars":"Sales - Fabric, Output CGST, Output SGST","narration":"Fabric supply - NG/58","billRef":null,"debit":100800,"credit":0,"balance":169050}],"totals":{"debit":2320.5,"credit":1050},"closing":169050,"closingType":"Dr"},"/api/reports/ledger/8":{"ledger":{"id":8,"name":"Ravi Textiles","group":"Sundry Debtors"},"from":"2026-04-01","to":"2027-03-31","opening":125000,"openingType":"Dr","entries":[{"voucherId":1,"date":"2026-04-03","type":"Sales","number":"SAL-0001","particulars":"Sales - Fabric, Output CGST, Output SGST","narration":"Fabric supply - invoice RT/104","billRef":null,"debit":193200,"credit":0,"balance":318200},{"voucherId":13,"date":"2026-06-18","type":"Receipt","number":"RCP-0002","particulars":"HDFC Bank - Current A/c","narration":"Receipt against RT/104","billRef":null,"debit":0,"credit":126000,"balance":192200},{"voucherId":18,"date":"2026-07-04","type":"Sales","number":"SAL-0005","particulars":"Sales - Fabric, Output CGST, Output SGST","narration":"Repeat order - invoice RT/119","billRef":null,"debit":315000,"credit":0,"balance":507200},{"voucherId":32,"date":"2026-10-07","type":"Receipt","number":"RCP-0005","particulars":"HDFC Bank - Current A/c","narration":"Receipt against RT/119","billRef":null,"debit":0,"credit":100000,"balance":407200},{"voucherId":34,"date":"2026-10-10","type":"Sales","number":"SAL-0008","particulars":"Sales - Fabric, Output CGST, Output SGST","narration":"Diwali stock supply - invoice RT/131","billRef":null,"debit":126000,"credit":0,"balance":533200}],"totals":{"debit":6342,"credit":2260},"closing":533200,"closingType":"Dr"},"/api/reports/ledger/11":{"ledger":{"id":11,"name":"Shreeji Boutique","group":"Sundry Debtors"},"from":"2026-04-01","to":"2027-03-31","opening":0,"openingType":"Dr","entries":[{"voucherId":12,"date":"2026-06-08","type":"Sales","number":"SAL-0004","particulars":"Sales - Fabric, Output CGST, Output SGST","narration":"Fabric supply - invoice SB/12","billRef":null,"debit":403200,"credit":0,"balance":403200},{"voucherId":26,"date":"2026-08-22","type":"Receipt","number":"RCP-0004","particulars":"HDFC Bank - Current A/c","narration":"Advance received for October shipment","billRef":null,"debit":0,"credit":60000,"balance":343200}],"totals":{"debit":4032,"credit":600},"closing":343200,"closingType":"Dr"},"/api/reports/ledger/2":{"ledger":{"id":2,"name":"Director's Loan","group":"Unsecured Loans"},"from":"2026-04-01","to":"2027-03-31","opening":-500000,"openingType":"Cr","entries":[],"totals":{"debit":0,"credit":0},"closing":-500000,"closingType":"Cr"}};</script>
+<script>
+  // Static data table standing in for the JSON API.
+  window.__TALLYCRAFT_SNAPSHOT__ = true;
+  const DATA = window.__TALLYCRAFT_DATA__;
+  const normalize = (path) => path.replace(/\/+$/, "");
+  const routes = Object.keys(DATA).sort((a, b) => b.length - a.length);
+  window.fetch = async (input, init = {}) => {
+    const url = typeof input === "string" ? input : input.url;
+    const { pathname } = new URL(url, location.href);
+    const method = (init.method ?? "GET").toUpperCase();
+    if (method !== "GET" && method !== "HEAD") {
+      return {
+        ok: false,
+        status: 501,
+        statusText: "Snapshot is read-only",
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({
+          error: {
+            code: "SNAPSHOT_READ_ONLY",
+            message: "This is a static snapshot. Run the server to post vouchers.",
+          },
+        }),
+        text: async () => "",
+      };
+    }
+    let key = routes.find((route) => normalize(pathname) === route || normalize(pathname).startsWith(route + "/"));
+    if (key === undefined && normalize(pathname) === "/api/reports/ledger") {
+      // The client asks for a ledger by query string; the table is keyed by id.
+      const id = new URL(url, location.href).searchParams.get("ledgerId");
+      const candidate = "/api/reports/ledger/" + id;
+      if (DATA[candidate] !== undefined) key = candidate;
+    }
+    if (key === undefined && normalize(pathname) === "/api/vouchers/next") {
+      return {
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({ number: "SNAP-0001" }),
+        text: async () => '{"number":"SNAP-0001"}',
+      };
+    }
+    const body = key === undefined ? { error: { code: "NOT_FOUND", message: pathname } } : DATA[key];
+    return {
+      ok: key !== undefined,
+      status: key === undefined ? 404 : 200,
+      statusText: key === undefined ? "Not Found" : "OK",
+      headers: new Headers({ "content-type": "application/json" }),
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  };
+</script>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span class="brand-text">
+          <strong>TallyCraft</strong>
+          <small id="brand-company">Loading company…</small>
+        </span>
+      </div>
+      <nav class="mainnav" id="mainnav" aria-label="Primary">
+        <button data-nav="gateway" class="active">Gateway</button>
+        <button data-nav="masters">Masters</button>
+        <button data-nav="vouchers">Transactions</button>
+        <button data-nav="reports">Reports</button>
+        <button data-nav="data">Data</button>
+      </nav>
+      <div class="topbar-meta">
+        <span
+          id="tallycraft-boot-mode"
+          class="pill"
+          hidden
+          title="Rendered from the copy inlined in this page because the API was unreachable"
+          >offline copy</span
+        >
+        <span id="fy-label" class="pill">FY</span>
+        <span id="net-status" class="pill" data-state="online" hidden></span>
+        <button
+          id="install-app"
+          class="pill pill-action"
+          type="button"
+          hidden
+          title="Install TallyCraft as an app"
+        >
+          Install app
+        </button>
+        <span class="clock" id="clock"></span>
+      </div>
+    </header>
+
+    <div class="ticker" id="ticker" role="status" aria-live="polite">
+      <span class="ticker-dot"></span>
+      <span id="ticker-text">Connecting to the ledger…</span>
+      <button id="ticker-action" class="link-button" hidden></button>
+    </div>
+
+    <main id="view" class="view" tabindex="-1">
+      <div class="loading">Loading the ledger…</div>
+    </main>
+
+    <footer class="keybar" aria-label="Keyboard shortcuts">
+      <span class="keybar-label">Shortcuts</span>
+      <span><kbd>F4</kbd> Contra</span>
+      <span><kbd>F5</kbd> Payment</span>
+      <span><kbd>F6</kbd> Receipt</span>
+      <span><kbd>F7</kbd> Journal</span>
+      <span><kbd>F8</kbd> Sales</span>
+      <span><kbd>F9</kbd> Purchase</span>
+      <span><kbd>Alt</kbd>+<kbd>F1</kbd> Detailed</span>
+      <span><kbd>Ctrl</kbd>+<kbd>A</kbd> Accept</span>
+      <span><kbd>Esc</kbd> Back</span>
+      <span><kbd>?</kbd> Help</span>
+    </footer>
+
+    <div id="modal-root"></div>
+    <script type="module">/**
+ * TallyCraft browser client.
+ *
+ * A small hash-routed single page app. All figures come from the JSON API;
+ * the client never recomputes a balance, so what is on screen is exactly what
+ * the ledger says.
+ */
+
+const state = {
+  catalog: null,
+  company: null,
+  statistics: null,
+  screen: "gateway",
+  params: {},
+  ledgers: [],
+  detailed: true,
+};
+
+const view = document.getElementById("view");
+const ticker = document.getElementById("ticker");
+const tickerText = document.getElementById("ticker-text");
+const tickerAction = document.getElementById("ticker-action");
+const nav = document.getElementById("mainnav");
+
+const money = new Intl.NumberFormat("en-IN", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+function fmt(value) {
+  const number = Number(value ?? 0);
+  return money.format(Number.isFinite(number) ? number : 0);
+}
+
+function el(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (value === undefined || value === null || value === false) continue;
+    if (key === "class") node.className = value;
+    else if (key === "dataset") Object.assign(node.dataset, value);
+    else if (key === "style") node.setAttribute("style", value);
+    else if (key.startsWith("on") && typeof value === "function") {
+      node.addEventListener(key.slice(2).toLowerCase(), value);
+    } else if (key === "html") node.innerHTML = value;
+    else node.setAttribute(key, value === true ? "" : String(value));
+  }
+  for (const child of children.flat(Infinity)) {
+    if (child === null || child === undefined || child === false) continue;
+    node.append(
+      child instanceof Node ? child : document.createTextNode(String(child)),
+    );
+  }
+  return node;
+}
+
+/**
+ * Boot payload inlined by the server into index.html.
+ *
+ * A preview proxy can block or rewrite `/api/*` while still serving the shell.
+ * When that happens the first paint must still show the real ledger, so these
+ * responses double as a fallback for read-only screens.
+ */
+const BOOT = (() => {
+  const node = document.getElementById("tallycraft-boot");
+  if (node === null) return {};
+  try {
+    return JSON.parse(node.textContent ?? "{}");
+  } catch {
+    return {};
+  }
+})();
+
+/**
+ * Reveal the "offline copy" badge.
+ *
+ * It only appears once a request has actually fallen back, so a healthy
+ * session never claims to be running from the inlined copy.
+ */
+let bootModeShown = false;
+function markBootMode() {
+  if (bootModeShown) return;
+  bootModeShown = true;
+  const note = document.getElementById("tallycraft-boot-mode");
+  if (note !== null) note.hidden = false;
+}
+
+/** Fallback for a read request, or null when nothing was inlined for it. */
+function bootFallback(path) {
+  if (BOOT[path] === undefined) return null;
+  markBootMode();
+  return structuredClone(BOOT[path]);
+}
+
+async function api(path, options = {}) {
+  const method = (options.method ?? "GET").toUpperCase();
+  const isRead = method === "GET" || method === "HEAD";
+
+  let response;
+  try {
+    response = await fetch(path, {
+      headers: { "content-type": "application/json", ...options.headers },
+      ...options,
+    });
+  } catch (error) {
+    // Network failure (proxy blocked, offline): serve the inlined copy.
+    const fallback = isRead ? bootFallback(path) : null;
+    if (fallback !== null) return fallback;
+    throw error;
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!response.ok) {
+    const fallback =
+      isRead && response.status >= 500 ? bootFallback(path) : null;
+    if (fallback !== null) return fallback;
+    let message = `${response.status} ${response.statusText}`;
+    if (contentType.includes("application/json")) {
+      const body = await response.json().catch(() => null);
+      message = body?.error?.message ?? message;
+    }
+    throw new Error(message);
+  }
+  return contentType.includes("application/json")
+    ? response.json()
+    : response.text();
+}
+
+let tickerTimer = null;
+
+function notify(message, kind = "info", action = null) {
+  ticker.hidden = false;
+  ticker.dataset.kind = kind;
+  tickerText.textContent = message;
+  if (action === null) {
+    tickerAction.hidden = true;
+  } else {
+    tickerAction.hidden = false;
+    tickerAction.textContent = action.label;
+    tickerAction.onclick = action.run;
+  }
+  clearTimeout(tickerTimer);
+  if (kind === "ok")
+    tickerTimer = setTimeout(() => (ticker.hidden = true), 4200);
+}
+
+function idle(message = "") {
+  if (message === "") {
+    ticker.hidden = true;
+    return;
+  }
+  notify(message, "info");
+}
+
+function setNav(screen) {
+  for (const button of nav.querySelectorAll("button")) {
+    button.classList.toggle("active", button.dataset.nav === screen);
+  }
+}
+
+function navigate(hash) {
+  if (location.hash === hash) render();
+  else location.hash = hash;
+}
+
+/** Change a report parameter for the current route only, then repaint. */
+function setOverride(key, value) {
+  state.overrides = { ...state.overrides, [key]: value };
+  state.params = { ...state.params, [key]: value };
+  render();
+}
+
+/* ------------------------------------------------------------------ header */
+
+function paintHeader() {
+  const company = state.company;
+  document.getElementById("brand-company").textContent = company
+    ? `${company.name} · ${company.state ?? "India"}`
+    : "No company loaded";
+  document.getElementById("fy-label").textContent = company
+    ? `FY ${company.financialYearStart.slice(0, 4)}–${company.financialYearEnd.slice(2, 4)}`
+    : "FY —";
+}
+
+setInterval(() => {
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString(
+    "en-IN",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  );
+}, 1000);
+
+/* ------------------------------------------------------------------ router */
+
+const ROUTES = [
+  [/^#\/gateway$/, () => ({ screen: "gateway" })],
+  [/^#\/masters$/, () => ({ screen: "masters" })],
+  [/^#\/vouchers$/, () => ({ screen: "vouchers" })],
+  [
+    /^#\/voucher\/new\?type=([A-Z_]+)$/,
+    (match) => ({ screen: "voucher-new", type: match[1] }),
+  ],
+  [/^#\/reports$/, () => ({ screen: "reports" })],
+  [/^#\/report\/([a-z-]+)$/, (match) => ({ screen: "report", name: match[1] })],
+  [
+    /^#\/report\/ledger\/(\d+)$/,
+    (match) => ({
+      screen: "report",
+      name: "ledger",
+      ledgerId: Number(match[1]),
+    }),
+  ],
+  [/^#\/data$/, () => ({ screen: "data" })],
+];
+
+function parseHash() {
+  const hash = location.hash === "" ? "#/gateway" : location.hash;
+  for (const [pattern, handler] of ROUTES) {
+    const match = pattern.exec(hash);
+    if (match !== null) return handler(match);
+  }
+  return { screen: "gateway" };
+}
+
+async function render() {
+  const route = parseHash();
+  const routeKey = `${route.screen}:${route.name ?? ""}:${route.ledgerId ?? ""}`;
+  if (state.routeKey !== routeKey) {
+    state.routeKey = routeKey;
+    state.overrides = {};
+  }
+  state.screen = route.screen;
+  state.params = { ...route, ...state.overrides };
+  setNav(
+    route.screen === "report" || route.screen === "vouchers"
+      ? route.screen === "report"
+        ? "reports"
+        : "vouchers"
+      : route.screen,
+  );
+  view.replaceChildren(el("div", { class: "loading" }, "Loading…"));
+  try {
+    switch (route.screen) {
+      case "gateway":
+        await renderGateway();
+        break;
+      case "masters":
+        await renderMasters();
+        break;
+      case "vouchers":
+        await renderVouchers();
+        break;
+      case "voucher-new":
+        await renderVoucherEntry(route.type);
+        break;
+      case "reports":
+        renderReportsIndex();
+        break;
+      case "report":
+        await renderReport(route.name, route);
+        break;
+      case "data":
+        await renderData();
+        break;
+      default:
+        await renderGateway();
+    }
+  } catch (error) {
+    view.replaceChildren(
+      el(
+        "div",
+        { class: "card" },
+        el("h2", {}, "Could not load this screen"),
+        el("p", { class: "muted" }, error.message),
+      ),
+    );
+  }
+}
+
+/* ----------------------------------------------------------------- gateway */
+
+async function renderGateway() {
+  const [stats, vouchers] = await Promise.all([
+    api("/api/statistics"),
+    api("/api/vouchers?limit=7"),
+  ]);
+  state.statistics = stats;
+
+  const cashBank = Number(stats.cashInHand) + Number(stats.bankBalance);
+  const hero = el(
+    "section",
+    { class: "grid cols-4" },
+    statCard(
+      "Cash & bank",
+      fmt(cashBank),
+      `Cash ${fmt(stats.cashInHand)} · Bank ${fmt(stats.bankBalance)}`,
+      "accent",
+    ),
+    statCard(
+      "Sundry debtors",
+      fmt(stats.debtors),
+      "Receivable from customers",
+      "debit",
+    ),
+    statCard(
+      "Sundry creditors",
+      fmt(stats.creditors),
+      "Payable to suppliers",
+      "credit",
+    ),
+    statCard(
+      Number(stats.netProfit) >= 0 ? "Net profit" : "Net loss",
+      fmt(Math.abs(Number(stats.netProfit))),
+      "Year to date, after depreciation",
+      Number(stats.netProfit) >= 0 ? "debit" : "credit",
+    ),
+  );
+
+  const txItems = [
+    [
+      "F4",
+      "Contra voucher",
+      "Cash to bank, bank to cash",
+      "#/voucher/new?type=CONTRA",
+    ],
+    ["F5", "Payment voucher", "Money going out", "#/voucher/new?type=PAYMENT"],
+    ["F6", "Receipt voucher", "Money coming in", "#/voucher/new?type=RECEIPT"],
+    [
+      "F7",
+      "Journal voucher",
+      "Adjustments and transfers",
+      "#/voucher/new?type=JOURNAL",
+    ],
+    ["F8", "Sales voucher", "Invoice a customer", "#/voucher/new?type=SALES"],
+    [
+      "F9",
+      "Purchase voucher",
+      "Book a supplier bill",
+      "#/voucher/new?type=PURCHASE",
+    ],
+  ];
+  const reportItems = [
+    ["—", "Trial balance", "Every ledger, Dr and Cr", "#/report/trial-balance"],
+    ["—", "Balance sheet", "Assets and liabilities", "#/report/balance-sheet"],
+    ["—", "Profit & loss", "Trading and indirect", "#/report/profit-loss"],
+    ["—", "Day book", "Vouchers for one date", "#/report/day-book"],
+    ["—", "Outstanding", "Receivables and ageing", "#/report/outstanding"],
+    ["—", "Stock summary", "Quantity and value", "#/report/stock-summary"],
+  ];
+
+  const recent = el(
+    "section",
+    { class: "card", style: "margin-top:16px" },
+    el(
+      "h2",
+      {},
+      "Recent vouchers",
+      el("a", { class: "small", href: "#/vouchers" }, "All transactions →"),
+    ),
+    vouchers.vouchers.length === 0
+      ? el(
+          "div",
+          { class: "empty" },
+          "No vouchers yet. Press F8 to raise the first invoice.",
+        )
+      : el(
+          "div",
+          { class: "table-wrap" },
+          el(
+            "table",
+            { class: "data" },
+            el(
+              "thead",
+              {},
+              el(
+                "tr",
+                {},
+                el("th", {}, "Date"),
+                el("th", {}, "Type"),
+                el("th", {}, "Number"),
+                el("th", {}, "Party"),
+                el("th", {}, "Narration"),
+                el("th", { class: "num" }, "Amount"),
+              ),
+            ),
+            el(
+              "tbody",
+              {},
+              vouchers.vouchers.map((voucher) =>
+                el(
+                  "tr",
+                  {
+                    style: "cursor:pointer",
+                    onclick: () => openVoucher(voucher.id),
+                  },
+                  el("td", { class: "nowrap mono" }, voucher.date),
+                  el("td", {}, voucher.typeName),
+                  el("td", { class: "mono" }, voucher.number),
+                  el("td", {}, voucher.party ?? "—"),
+                  el("td", { class: "muted" }, voucher.narration ?? "—"),
+                  el("td", { class: "num" }, fmt(voucher.total)),
+                ),
+              ),
+            ),
+          ),
+        ),
+  );
+
+  view.replaceChildren(
+    el(
+      "div",
+      { class: "page-head" },
+      el(
+        "div",
+        {},
+        el("h1", {}, "Gateway of Tally"),
+        el(
+          "p",
+          { class: "sub" },
+          `${stats.company.name} · ${stats.counts.ledgers} ledgers · ${stats.counts.vouchers} vouchers · ${stats.counts.stockItems} stock items`,
+        ),
+      ),
+      el(
+        "div",
+        { class: "head-tools" },
+        el("span", { class: "badge ok" }, "Double entry enforced"),
+        el(
+          "button",
+          {
+            class: "button",
+            onclick: () => navigate("#/report/trial-balance"),
+          },
+          "Trial balance",
+        ),
+        el(
+          "button",
+          {
+            class: "button primary",
+            onclick: () => navigate("#/voucher/new?type=SALES"),
+          },
+          "New sales invoice",
+        ),
+      ),
+    ),
+    hero,
+    el(
+      "section",
+      { class: "grid split", style: "margin-top:16px" },
+      el(
+        "div",
+        { class: "card" },
+        el("h2", {}, "Transactions & masters"),
+        el(
+          "div",
+          { class: "gateway-list" },
+          txItems.map((item) => gatewayItem(item)),
+        ),
+        el("div", { class: "gateway-section-title" }, "Master data"),
+        el(
+          "div",
+          { class: "gateway-list" },
+          gatewayItem(
+            ["Alt", "Create ledger", "Add an account", "#/masters"],
+            true,
+          ),
+        ),
+      ),
+      el(
+        "div",
+        { class: "card" },
+        el(
+          "h2",
+          {},
+          "Reports",
+          el("a", { class: "small", href: "#/reports" }, "All reports →"),
+        ),
+        el(
+          "div",
+          { class: "gateway-list" },
+          reportItems.map((item) => gatewayItem(item)),
+        ),
+      ),
+    ),
+    recent,
+  );
+}
+
+function statCard(label, value, hint, tone) {
+  return el(
+    "article",
+    { class: `card stat ${tone}` },
+    el("div", { class: "label" }, label),
+    el("div", { class: "value" }, value),
+    el("div", { class: "hint" }, hint),
+  );
+}
+
+function gatewayItem([key, label, meta, href], alt = false) {
+  const keyLabel = alt ? "Alt+L" : key;
+  return el(
+    "button",
+    { class: "gateway-item", onclick: () => navigate(href) },
+    el("span", { class: "gi-key" }, keyLabel),
+    el("span", { class: "gi-label" }, label),
+    el("span", { class: "gi-meta" }, meta),
+  );
+}
+
+/* ----------------------------------------------------------------- masters */
+
+async function renderMasters() {
+  const [ledgerResponse, stock] = await Promise.all([
+    api("/api/ledgers"),
+    api("/api/reports/stock-summary"),
+  ]);
+  state.ledgers = ledgerResponse.ledgers;
+
+  const search = el("input", {
+    type: "search",
+    placeholder: "Search ledgers…",
+    oninput: (event) => filterLedgerRows(event.target.value),
+  });
+
+  const groupFilter = el(
+    "select",
+    {
+      onchange: (event) => {
+        const value = event.target.value;
+        for (const row of document.querySelectorAll("#ledger-body tr")) {
+          row.hidden = value !== "" && row.dataset.group !== value;
+        }
+      },
+    },
+    el("option", { value: "" }, "All groups"),
+    [...new Set(state.ledgers.map((ledger) => ledger.group))]
+      .sort()
+      .map((group) => el("option", { value: group }, group)),
+  );
+
+  const table = el(
+    "div",
+    { class: "card", style: "margin-top:16px" },
+    el(
+      "h2",
+      {},
+      "Chart of accounts",
+      el(
+        "button",
+        { class: "button primary", onclick: openLedgerForm },
+        "Create ledger",
+      ),
+    ),
+    el(
+      "div",
+      { class: "toolbar" },
+      search,
+      groupFilter,
+      el("span", { class: "spacer" }),
+      el("span", { class: "badge neutral" }, `${state.ledgers.length} ledgers`),
+    ),
+    el(
+      "div",
+      { class: "table-wrap" },
+      el(
+        "table",
+        { class: "data" },
+        el(
+          "thead",
+          {},
+          el(
+            "tr",
+            {},
+            el("th", {}, "Ledger"),
+            el("th", {}, "Group"),
+            el("th", { class: "num" }, "Opening balance"),
+            el("th", {}, "Nature"),
+            el("th", {}, ""),
+          ),
+        ),
+        el(
+          "tbody",
+          { id: "ledger-body" },
+          state.ledgers.map((ledger) =>
+            el(
+              "tr",
+              {
+                dataset: {
+                  group: ledger.group,
+                  name: ledger.name.toLowerCase(),
+                },
+              },
+              el("td", {}, ledger.name),
+              el("td", { class: "muted" }, ledger.group),
+              el(
+                "td",
+                { class: "num" },
+                `${fmt(Math.abs(ledger.opening))} ${ledger.opening >= 0 ? "Dr" : "Cr"}`,
+              ),
+              el(
+                "td",
+                { class: "muted" },
+                ledger.nature === "assets"
+                  ? "Asset"
+                  : ledger.nature === "liabilities"
+                    ? "Liability"
+                    : ledger.nature === "income"
+                      ? "Income"
+                      : "Expense",
+              ),
+              el(
+                "td",
+                { class: "row-actions" },
+                el(
+                  "button",
+                  {
+                    class: "button ghost small",
+                    onclick: () => navigate(`#/report/ledger/${ledger.id}`),
+                  },
+                  "Statement",
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  const stockCard = el(
+    "div",
+    { class: "card", style: "margin-top:16px" },
+    el(
+      "h2",
+      {},
+      "Stock items",
+      el("span", { class: "small" }, `Value ${fmt(stock.totalValue)}`),
+    ),
+    stock.rows.length === 0
+      ? el("div", { class: "empty" }, "No stock items yet.")
+      : el(
+          "div",
+          { class: "table-wrap" },
+          el(
+            "table",
+            { class: "data" },
+            el(
+              "thead",
+              {},
+              el(
+                "tr",
+                {},
+                el("th", {}, "Item"),
+                el("th", {}, "Group"),
+                el("th", {}, "Unit"),
+                el("th", { class: "num" }, "Inward"),
+                el("th", { class: "num" }, "Outward"),
+                el("th", { class: "num" }, "Closing"),
+                el("th", { class: "num" }, "Rate"),
+                el("th", { class: "num" }, "Value"),
+              ),
+            ),
+            el(
+              "tbody",
+              {},
+              stock.rows.map((row) =>
+                el(
+                  "tr",
+                  {},
+                  el("td", {}, row.name),
+                  el("td", { class: "muted" }, row.group ?? "—"),
+                  el("td", {}, row.unit),
+                  el("td", { class: "num" }, row.inwardQty),
+                  el("td", { class: "num" }, row.outwardQty),
+                  el("td", { class: "num" }, row.closingQty),
+                  el("td", { class: "num" }, fmt(row.rate)),
+                  el("td", { class: "num" }, fmt(row.value)),
+                ),
+              ),
+            ),
+          ),
+        ),
+  );
+
+  view.replaceChildren(
+    el(
+      "div",
+      { class: "page-head" },
+      el(
+        "div",
+        {},
+        el("h1", {}, "Masters"),
+        el("p", { class: "sub" }, "Ledgers, groups and stock items"),
+      ),
+    ),
+    table,
+    stockCard,
+  );
+}
+
+function filterLedgerRows(query) {
+  const needle = query.trim().toLowerCase();
+  for (const row of document.querySelectorAll("#ledger-body tr")) {
+    row.hidden = needle !== "" && !row.dataset.name.includes(needle);
+  }
+}
+
+function openLedgerForm() {
+  const groups = [
+    ...new Set(state.catalog.groups.map((group) => group.name)),
+  ].sort();
+  const form = el(
+    "form",
+    {
+      class: "grid",
+      onsubmit: async (event) => {
+        event.preventDefault();
+        const data = new FormData(event.target);
+        try {
+          const ledger = await api("/api/ledgers", {
+            method: "POST",
+            body: JSON.stringify({
+              name: data.get("name"),
+              group: data.get("group"),
+              opening: Number(data.get("opening") ?? 0),
+              openingType: data.get("openingType"),
+              gstin: data.get("gstin") || null,
+            }),
+          });
+          closeModal();
+          notify(`Ledger ${ledger.name} created under ${ledger.group}`, "ok");
+          render();
+        } catch (error) {
+          notify(error.message, "error");
+        }
+      },
+    },
+    el(
+      "label",
+      { class: "field" },
+      "Ledger name",
+      el("input", {
+        name: "name",
+        required: true,
+        placeholder: "e.g. Ganesh Traders",
+      }),
+    ),
+    el(
+      "label",
+      { class: "field" },
+      "Under group",
+      el(
+        "select",
+        { name: "group" },
+        groups.map((group) => el("option", { value: group }, group)),
+      ),
+    ),
+    el(
+      "div",
+      { class: "grid cols-2" },
+      el(
+        "label",
+        { class: "field" },
+        "Opening balance",
+        el("input", {
+          name: "opening",
+          class: "num",
+          type: "number",
+          step: "0.01",
+          value: "0",
+        }),
+      ),
+      el(
+        "label",
+        { class: "field" },
+        "Balance type",
+        el(
+          "select",
+          { name: "openingType" },
+          el("option", { value: "Dr" }, "Debit (Dr)"),
+          el("option", { value: "Cr" }, "Credit (Cr)"),
+        ),
+      ),
+    ),
+    el(
+      "label",
+      { class: "field" },
+      "GSTIN (optional)",
+      el("input", { name: "gstin", placeholder: "24AAAAA0000A1Z5" }),
+    ),
+    el(
+      "div",
+      { class: "row-actions" },
+      el(
+        "button",
+        { class: "button primary", type: "submit" },
+        "Create ledger",
+      ),
+    ),
+  );
+  openModal("Create ledger", form);
+}
+
+/* ------------------------------------------------------------ transactions */
+
+async function renderVouchers() {
+  const [response, catalog] = await Promise.all([
+    api("/api/vouchers?limit=300"),
+    Promise.resolve(state.catalog),
+  ]);
+  const rows = response.vouchers;
+  const total = rows.reduce((sum, voucher) => sum + Number(voucher.total), 0);
+
+  const filter = el(
+    "select",
+    {
+      onchange: (event) => {
+        const value = event.target.value;
+        for (const row of document.querySelectorAll("#voucher-body tr")) {
+          row.hidden = value !== "" && row.dataset.type !== value;
+        }
+      },
+    },
+    el("option", { value: "" }, "All voucher types"),
+    catalog.voucherTypes.map((type) =>
+      el("option", { value: type.code }, type.name),
+    ),
+  );
+
+  view.replaceChildren(
+    el(
+      "div",
+      { class: "page-head" },
+      el(
+        "div",
+        {},
+        el("h1", {}, "Transactions"),
+        el(
+          "p",
+          { class: "sub" },
+          `${rows.length} vouchers · ${fmt(total)} gross`,
+        ),
+      ),
+      el(
+        "div",
+        { class: "head-tools" },
+        ...[
+          ["CONTRA", "F4"],
+          ["PAYMENT", "F5"],
+          ["RECEIPT", "F6"],
+          ["JOURNAL", "F7"],
+          ["SALES", "F8"],
+          ["PURCHASE", "F9"],
+        ].map(([type, key]) =>
+          el(
+            "button",
+            {
+              class: "button",
+              onclick: () => navigate(`#/voucher/new?type=${type}`),
+            },
+            `${catalog.voucherTypes.find((entry) => entry.code === type)?.name ?? type}`,
+            el("kbd", {}, key),
+          ),
+        ),
+      ),
+    ),
+    el(
+      "div",
+      { class: "card" },
+      el(
+        "div",
+        { class: "toolbar" },
+        filter,
+        el("span", { class: "spacer" }),
+        el("span", { class: "badge neutral" }, `${rows.length} rows`),
+      ),
+      rows.length === 0
+        ? el("div", { class: "empty" }, "No vouchers yet.")
+        : el(
+            "div",
+            { class: "table-wrap" },
+            el(
+              "table",
+              { class: "data" },
+              el(
+                "thead",
+                {},
+                el(
+                  "tr",
+                  {},
+                  el("th", {}, "Date"),
+                  el("th", {}, "Type"),
+                  el("th", {}, "Number"),
+                  el("th", {}, "Party"),
+                  el("th", {}, "Narration"),
+                  el("th", { class: "num" }, "Amount"),
+                  el("th", {}, ""),
+                ),
+              ),
+              el(
+                "tbody",
+                { id: "voucher-body" },
+                rows.map((voucher) =>
+                  el(
+                    "tr",
+                    { dataset: { type: voucher.type } },
+                    el("td", { class: "mono nowrap" }, voucher.date),
+                    el("td", {}, voucher.typeName),
+                    el("td", { class: "mono" }, voucher.number),
+                    el("td", {}, voucher.party ?? "—"),
+                    el("td", { class: "muted" }, voucher.narration ?? "—"),
+                    el("td", { class: "num" }, fmt(voucher.total)),
+                    el(
+                      "td",
+                      { class: "row-actions" },
+                      el(
+                        "button",
+                        {
+                          class: "button ghost small",
+                          onclick: () => openVoucher(voucher.id),
+                        },
+                        "Open",
+                      ),
+                      el(
+                        "button",
+                        {
+                          class: "button ghost small danger",
+                          onclick: async () => {
+                            if (!confirm(`Delete ${voucher.number}?`)) return;
+                            try {
+                              await api(`/api/vouchers/${voucher.id}`, {
+                                method: "DELETE",
+                              });
+                              notify(`${voucher.number} deleted`, "ok");
+                              render();
+                            } catch (error) {
+                              notify(error.message, "error");
+                            }
+                          },
+                        },
+                        "Delete",
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+    ),
+  );
+}
+
+async function openVoucher(id) {
+  try {
+    const voucher = await api(`/api/vouchers/${id}`);
+    openModal(
+      `${voucher.typeName} ${voucher.number}`,
+      el(
+        "div",
+        {},
+        el(
+          "div",
+          { class: "grid cols-2", style: "margin-bottom:12px" },
+          el(
+            "div",
+            {},
+            el("div", { class: "muted small" }, "Date"),
+            el("div", { class: "mono" }, voucher.date),
+          ),
+          el(
+            "div",
+            {},
+            el("div", { class: "muted small" }, "Party"),
+            el("div", {}, voucher.party?.name ?? "—"),
+          ),
+        ),
+        el(
+          "table",
+          { class: "data" },
+          el(
+            "thead",
+            {},
+            el(
+              "tr",
+              {},
+              el("th", {}, "Ledger"),
+              el("th", { class: "num" }, "Debit"),
+              el("th", { class: "num" }, "Credit"),
+            ),
+          ),
+          el(
+            "tbody",
+            {},
+            voucher.lines.map((line) =>
+              el(
+                "tr",
+                {},
+                el("td", {}, line.ledger),
+                el(
+                  "td",
+                  { class: "num debit" },
+                  line.debit > 0 ? fmt(line.debit) : "",
+                ),
+                el(
+                  "td",
+                  { class: "num credit" },
+                  line.credit > 0 ? fmt(line.credit) : "",
+                ),
+              ),
+            ),
+          ),
+        ),
+        voucher.inventory.length > 0
+          ? el(
+              "div",
+              { style: "margin-top:14px" },
+              el("h3", { class: "small muted" }, "Inventory allocation"),
+              el(
+                "table",
+                { class: "data" },
+                el(
+                  "tbody",
+                  {},
+                  voucher.inventory.map((entry) =>
+                    el(
+                      "tr",
+                      {},
+                      el("td", {}, entry.item),
+                      el(
+                        "td",
+                        { class: "num" },
+                        `${entry.quantity} ${entry.unit}`,
+                      ),
+                      el("td", { class: "num" }, fmt(entry.rate)),
+                      el("td", { class: "num" }, fmt(entry.amount)),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
+        voucher.narration
+          ? el(
+              "p",
+              { class: "muted", style: "margin-top:12px" },
+              voucher.narration,
+            )
+          : null,
+      ),
+      [el("button", { class: "button", onclick: closeModal }, "Close")],
+    );
+  } catch (error) {
+    notify(error.message, "error");
+  }
+}
+
+/* ---------------------------------------------------------- voucher entry */
+
+async function renderVoucherEntry(typeCode) {
+  const [{ ledgers }, stock] = await Promise.all([
+    api("/api/ledgers"),
+    api("/api/reports/stock-summary"),
+  ]);
+  const definition = state.catalog.voucherTypes.find(
+    (entry) => entry.code === typeCode,
+  );
+  const date = new Date().toISOString().slice(0, 10);
+  const { number } = await api(
+    `/api/vouchers/next?type=${typeCode}&date=${date}`,
+  );
+  const supportsInventory = [
+    "SALES",
+    "PURCHASE",
+    "CREDIT_NOTE",
+    "DEBIT_NOTE",
+  ].includes(typeCode);
+  const partyLedger =
+    typeCode === "SALES" || typeCode === "CREDIT_NOTE"
+      ? "Sundry Debtors"
+      : typeCode === "PURCHASE" || typeCode === "DEBIT_NOTE"
+        ? "Sundry Creditors"
+        : null;
+
+  const inventoryRows = [];
+  const linesBody = el("tbody");
+  const inventoryBody = el("tbody");
+
+  const meter = el("div", { class: "balance-meter" });
+  const lines = [];
+
+  const readTotals = () => {
+    let debit = 0;
+    let credit = 0;
+    for (const line of lines) {
+      const debitValue = Number(line.debitInput.value || 0);
+      const creditValue = Number(line.creditInput.value || 0);
+      debit += Number.isFinite(debitValue) ? debitValue : 0;
+      credit += Number.isFinite(creditValue) ? creditValue : 0;
+    }
+    return { debit, credit };
+  };
+
+  const paintMeter = () => {
+    const { debit, credit } = readTotals();
+    const difference = Math.round((debit - credit) * 100) / 100;
+    meter.replaceChildren(
+      el(
+        "div",
+        { class: "row" },
+        el("span", {}, "Total debit"),
+        el("strong", { class: "mono" }, fmt(debit)),
+      ),
+      el(
+        "div",
+        { class: "row" },
+        el("span", {}, "Total credit"),
+        el("strong", { class: "mono" }, fmt(credit)),
+      ),
+      el(
+        "div",
+        { class: "row" },
+        el("span", {}, "Difference"),
+        el("strong", { class: "mono" }, fmt(Math.abs(difference))),
+      ),
+      el(
+        "div",
+        { class: `status ${difference === 0 ? "ok" : "bad"}` },
+        difference === 0
+          ? "Voucher balanced — press Ctrl+A to accept"
+          : `Voucher differs by ${fmt(Math.abs(difference))}`,
+      ),
+    );
+  };
+
+  const addLine = (initial = {}) => {
+    const row = {
+      debitInput: el("input", {
+        class: "num",
+        inputmode: "decimal",
+        placeholder: "0.00",
+        value: initial.debit ?? "",
+      }),
+      creditInput: el("input", {
+        class: "num",
+        inputmode: "decimal",
+        placeholder: "0.00",
+        value: initial.credit ?? "",
+      }),
+    };
+    row.ledgerSelect = ledgerSelect(initial.ledger ?? "");
+    for (const input of [row.debitInput, row.creditInput]) {
+      input.addEventListener("input", () => {
+        if (input === row.debitInput && input.value !== "")
+          row.creditInput.value = "";
+        if (input === row.creditInput && input.value !== "")
+          row.debitInput.value = "";
+        paintMeter();
+      });
+    }
+    const tr = el(
+      "tr",
+      {},
+      el("td", {}, row.ledgerSelect),
+      el("td", {}, row.debitInput),
+      el("td", {}, row.creditInput),
+      el(
+        "td",
+        { style: "width:34px" },
+        el(
+          "button",
+          {
+            class: "remove-line",
+            type: "button",
+            title: "Remove line",
+            onclick: () => {
+              const index = lines.indexOf(row);
+              if (index !== -1) lines.splice(index, 1);
+              tr.remove();
+              paintMeter();
+            },
+          },
+          "×",
+        ),
+      ),
+    );
+    row.tr = tr;
+    lines.push(row);
+    linesBody.append(tr);
+    paintMeter();
+    return row;
+  };
+
+  function ledgerSelect(selected) {
+    const groups = new Map();
+    for (const ledger of ledgers) {
+      if (!groups.has(ledger.group)) groups.set(ledger.group, []);
+      groups.get(ledger.group).push(ledger);
+    }
+    return el(
+      "select",
+      {},
+      el("option", { value: "" }, "Select ledger…"),
+      [...groups.entries()].map(([group, entries]) =>
+        el(
+          "optgroup",
+          { label: group },
+          entries.map((ledger) =>
+            el(
+              "option",
+              { value: ledger.name, selected: ledger.name === selected },
+              ledger.name,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  const inventoryTotalCell = el("td", { class: "num muted" }, "—");
+
+  const addInventoryRow = (initial = {}) => {
+    const row = {
+      item: el(
+        "select",
+        {},
+        el("option", { value: "" }, "Select item…"),
+        stock.rows.map((entry) =>
+          el(
+            "option",
+            { value: entry.name, selected: initial.item === entry.name },
+            `${entry.name} (${entry.unit})`,
+          ),
+        ),
+      ),
+      qty: el("input", {
+        class: "num",
+        inputmode: "decimal",
+        placeholder: "0",
+        value: initial.qty ?? "",
+      }),
+      rate: el("input", {
+        class: "num",
+        inputmode: "decimal",
+        placeholder: "0.00",
+        value: initial.rate ?? "",
+      }),
+    };
+    const amountCell = el("td", { class: "num" }, "—");
+    const repaint = () => {
+      const amount = Number(row.qty.value || 0) * Number(row.rate.value || 0);
+      amountCell.textContent = amount > 0 ? fmt(amount) : "—";
+      const total = inventoryRows.reduce((sum, entry) => {
+        const value =
+          Number(entry.qty.value || 0) * Number(entry.rate.value || 0);
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      inventoryTotalCell.textContent = total > 0 ? fmt(total) : "—";
+    };
+    row.qty.addEventListener("input", repaint);
+    row.rate.addEventListener("input", repaint);
+    const tr = el(
+      "tr",
+      {},
+      el("td", {}, row.item),
+      el("td", {}, row.qty),
+      el("td", {}, row.rate),
+      amountCell,
+      el(
+        "td",
+        { style: "width:34px" },
+        el(
+          "button",
+          {
+            class: "remove-line",
+            type: "button",
+            onclick: () => {
+              const index = inventoryRows.indexOf(row);
+              if (index !== -1) inventoryRows.splice(index, 1);
+              tr.remove();
+              repaint();
+            },
+          },
+          "×",
+        ),
+      ),
+    );
+    row.tr = tr;
+    inventoryRows.push(row);
+    inventoryBody.append(tr);
+    repaint();
+  };
+
+  const narration = el("textarea", {
+    placeholder: "Narration, e.g. Invoice RT/104 against order 22",
+  });
+  const dateInput = el("input", { type: "date", value: date });
+  const numberInput = el("input", { value: number, class: "mono" });
+  const partySelect =
+    partyLedger === null
+      ? null
+      : el(
+          "select",
+          {},
+          el("option", { value: "" }, "Select party…"),
+          ledgers
+            .filter((ledger) => ledger.group === partyLedger)
+            .map((ledger) => el("option", { value: ledger.name }, ledger.name)),
+        );
+  partySelect?.addEventListener("change", () => {
+    const target =
+      lines.find((line) => line.ledgerSelect.value === "") ?? lines[0];
+    if (target !== undefined) target.ledgerSelect.value = partySelect.value;
+  });
+
+  const save = async () => {
+    const payloadLines = [];
+    for (const line of lines) {
+      const ledger = line.ledgerSelect.value;
+      const debit = Number(line.debitInput.value || 0);
+      const credit = Number(line.creditInput.value || 0);
+      if (ledger === "") continue;
+      if (!debit && !credit) continue;
+      payloadLines.push(debit ? { ledger, debit } : { ledger, credit });
+    }
+    const inventory = inventoryRows
+      .filter((row) => row.item.value !== "" && Number(row.qty.value) > 0)
+      .map((row) => ({
+        item: row.item.value,
+        qty: Number(row.qty.value),
+        rate: Number(row.rate.value || 0),
+      }));
+    try {
+      const result = await api("/api/vouchers", {
+        method: "POST",
+        body: JSON.stringify({
+          type: typeCode,
+          date: dateInput.value,
+          number: numberInput.value.trim() || undefined,
+          narration: narration.value.trim() || undefined,
+          partyLedgerId: partySelect?.value || undefined,
+          lines: payloadLines,
+          inventory,
+        }),
+      });
+      notify(
+        `${result.voucher.typeName} ${result.voucher.number} accepted for ${fmt(result.voucher.total)}`,
+        "ok",
+        { label: "View day book", run: () => navigate("#/report/day-book") },
+      );
+      for (const warning of result.warnings)
+        notify(`${result.voucher.number}: ${warning.message}`, "info");
+      navigate("#/vouchers");
+    } catch (error) {
+      notify(error.message, "error");
+    }
+  };
+
+  addLine();
+  addLine();
+  if (supportsInventory) addInventoryRow();
+
+  const sheet = el(
+    "section",
+    { class: "voucher-sheet" },
+    el(
+      "div",
+      { class: "voucher-head" },
+      el(
+        "div",
+        { class: "vtype" },
+        definition?.name ?? typeCode,
+        el("span", { class: "vt-key" }, definition?.shortcut ?? ""),
+      ),
+      el("div", { class: "grow" }),
+      el("label", { class: "field" }, "No.", numberInput),
+      el("label", { class: "field" }, "Date", dateInput),
+      partySelect
+        ? el("label", { class: "field" }, partyLedger, partySelect)
+        : null,
+    ),
+    el(
+      "div",
+      { class: "voucher-body" },
+      el(
+        "table",
+        { class: "lines-table" },
+        el(
+          "thead",
+          {},
+          el(
+            "tr",
+            {},
+            el("th", { style: "width:48%" }, "Particulars"),
+            el("th", { class: "num", style: "width:20%" }, "Debit"),
+            el("th", { class: "num", style: "width:20%" }, "Credit"),
+            el("th", { style: "width:34px" }, ""),
+          ),
+        ),
+        linesBody,
+      ),
+      el(
+        "div",
+        { style: "padding:8px 4px" },
+        el(
+          "button",
+          {
+            class: "button ghost small",
+            type: "button",
+            onclick: () => addLine(),
+          },
+          "+ Add ledger line",
+        ),
+      ),
+    ),
+    supportsInventory
+      ? el(
+          "div",
+          { class: "inventory-block" },
+          el(
+            "div",
+            { class: "inv-title" },
+            "Inventory allocation",
+            el(
+              "button",
+              {
+                class: "button ghost small",
+                type: "button",
+                onclick: () => addInventoryRow(),
+              },
+              "+ Add item",
+            ),
+          ),
+          el(
+            "table",
+            {},
+            el(
+              "thead",
+              {},
+              el(
+                "tr",
+                {},
+                el("th", {}, "Item"),
+                el("th", { class: "num" }, "Qty"),
+                el("th", { class: "num" }, "Rate"),
+                el("th", { class: "num" }, "Amount"),
+                el("th", {}, ""),
+              ),
+            ),
+            inventoryBody,
+            el(
+              "tfoot",
+              {},
+              el(
+                "tr",
+                {},
+                el(
+                  "td",
+                  { colspan: "3", class: "muted small" },
+                  "Inventory total",
+                ),
+                inventoryTotalCell,
+                el("td", {}),
+              ),
+            ),
+          ),
+        )
+      : null,
+    el(
+      "div",
+      { class: "voucher-foot" },
+      el(
+        "div",
+        { class: "narration" },
+        el("label", { class: "field" }, "Narration", narration),
+      ),
+      meter,
+    ),
+    el(
+      "div",
+      {
+        style:
+          "display:flex;gap:8px;justify-content:flex-end;padding:0 18px 18px",
+      },
+      el(
+        "button",
+        { class: "button", onclick: () => history.back() },
+        "Cancel",
+      ),
+      el(
+        "button",
+        { class: "button primary", onclick: save },
+        "Accept",
+        el("kbd", {}, "Ctrl+A"),
+      ),
+    ),
+  );
+
+  view.replaceChildren(
+    el(
+      "div",
+      { class: "page-head" },
+      el(
+        "div",
+        {},
+        el("h1", {}, `${definition?.name ?? typeCode} voucher`),
+        el(
+          "p",
+          { class: "sub" },
+          `Numbering ${state.catalog.voucherTypes.find((entry) => entry.code === typeCode)?.prefix ?? ""}-#### · debit and credit must agree before the voucher can be accepted`,
+        ),
+      ),
+      el(
+        "div",
+        { class: "head-tools" },
+        el(
+          "button",
+          { class: "button", onclick: () => navigate("#/vouchers") },
+          "All transactions",
+        ),
+      ),
+    ),
+    sheet,
+  );
+}
+
+/* ----------------------------------------------------------------- reports */
+
+function renderReportsIndex() {
+  const reports = [
+    [
+      "trial-balance",
+      "Trial Balance",
+      "Every ledger with its debit or credit balance, plus the accounting equation check.",
+    ],
+    [
+      "balance-sheet",
+      "Balance Sheet",
+      "Liabilities and assets as on a date, with inventory-derived closing stock.",
+    ],
+    [
+      "profit-loss",
+      "Profit & Loss",
+      "Trading account and indirect income and expenses for a date range.",
+    ],
+    ["day-book", "Day Book", "Every voucher posted on one date."],
+    [
+      "ledger",
+      "Ledger Statement",
+      "One account with opening, movements and closing balance.",
+    ],
+    [
+      "outstanding",
+      "Outstanding",
+      "Receivables or payables with ageing buckets.",
+    ],
+    [
+      "stock-summary",
+      "Stock Summary",
+      "Quantity and value by item, using weighted average cost.",
+    ],
+    [
+      "gst-summary",
+      "GST Summary",
+      "Output tax, input credit and net payable for a period.",
+    ],
+  ];
+  view.replaceChildren(
+    el(
+      "div",
+      { class: "page-head" },
+      el(
+        "div",
+        {},
+        el("h1", {}, "Reports"),
+        el("p", { class: "sub" }, "All figures derive from posted vouchers"),
+      ),
+    ),
+    el(
+      "section",
+      { class: "grid cols-2" },
+      reports.map(([name, title, description]) =>
+        el(
+          "button",
+          {
+            class: "card",
+            style:
+              "text-align:left;cursor:pointer;border:1px solid var(--line)",
+            onclick: () => navigate(`#/report/${name}`),
+          },
+          el("h2", {}, title, el("span", { class: "small muted" }, "Open →")),
+          el("p", { class: "muted small", style: "margin:0" }, description),
+        ),
+      ),
+    ),
+  );
+}
+
+function reportHead(title, subtitle, tools) {
+  return el(
+    "div",
+    { class: "page-head" },
+    el("div", {}, el("h1", {}, title), el("p", { class: "sub" }, subtitle)),
+    el("div", { class: "head-tools" }, tools),
+  );
+}
+
+async function renderReport(name, route) {
+  switch (name) {
+    case "trial-balance":
+      await renderTrialBalance();
+      break;
+    case "balance-sheet":
+      await renderBalanceSheet();
+      break;
+    case "profit-loss":
+      await renderProfitLoss();
+      break;
+    case "day-book":
+      await renderDayBook();
+      break;
+    case "ledger":
+      await renderLedgerReport(route.ledgerId);
+      break;
+    case "outstanding":
+      await renderOutstanding();
+      break;
+    case "stock-summary":
+      await renderStockSummary();
+      break;
+    case "gst-summary":
+      await renderGstSummary();
+      break;
+    default:
+      renderReportsIndex();
+  }
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function renderTrialBalance() {
+  const asOf = state.params.asOf ?? state.company.financialYearEnd;
+  const report = await api(
+    `/api/reports/trial-balance?asOf=${asOf}&detailed=${state.detailed}`,
+  );
+  const rows = report.rows;
+
+  const table = el(
+    "div",
+    { class: "table-wrap" },
+    el(
+      "table",
+      { class: "data" },
+      el(
+        "thead",
+        {},
+        el(
+          "tr",
+          {},
+          el("th", {}, "Particulars"),
+          el("th", { class: "num" }, "Debit"),
+          el("th", { class: "num" }, "Credit"),
+        ),
+      ),
+      el(
+        "tbody",
+        {},
+        rows.map((row) =>
+          el(
+            "tr",
+            {
+              class:
+                row.kind === "group"
+                  ? row.depth === 0
+                    ? "group-row"
+                    : "subgroup-row"
+                  : "",
+            },
+            el("td", { class: `indent-${Math.min(row.depth, 2)}` }, row.name),
+            el("td", { class: "num debit" }, row.debit ? fmt(row.debit) : ""),
+            el(
+              "td",
+              { class: "num credit" },
+              row.credit ? fmt(row.credit) : "",
+            ),
+          ),
+        ),
+        el(
+          "tr",
+          { class: "total-row" },
+          el("td", {}, "Total"),
+          el("td", { class: "num" }, fmt(report.totals.debit)),
+          el("td", { class: "num" }, fmt(report.totals.credit)),
+        ),
+      ),
+    ),
+  );
+
+  const dateInput = el("input", {
+    type: "date",
+    value: asOf,
+    onchange: (event) => setOverride("asOf", event.target.value),
+  });
+
+  view.replaceChildren(
+    reportHead(
+      "Trial Balance",
+      `${report.company} · ${report.ledgerCount} ledgers with balances · as on`,
+      [
+        dateInput,
+        el(
+          "button",
+          {
+            class: "button",
+            onclick: () => {
+              state.detailed = !state.detailed;
+              render();
+            },
+          },
+          state.detailed ? "Summary view" : "Detailed view",
+        ),
+        el(
+          "button",
+          { class: "button", onclick: () => window.print() },
+          "Print",
+        ),
+      ],
+    ),
+    el(
+      "div",
+      { class: "card" },
+      el(
+        "div",
+        { class: "toolbar" },
+        el(
+          "span",
+          { class: `badge ${report.balanced ? "ok" : "bad"}` },
+          report.balanced
+            ? "Debits equal credits"
+            : `Out by ${fmt(report.difference)}`,
+        ),
+        el("span", { class: "spacer" }),
+        el(
+          "span",
+          { class: "muted small" },
+          `Difference ${fmt(report.difference)}`,
+        ),
+      ),
+      table,
+    ),
+  );
+}
+
+async function renderBalanceSheet() {
+  const asOf = state.params.asOf ?? state.company.financialYearEnd;
+  const report = await api(`/api/reports/balance-sheet?asOf=${asOf}`);
+
+  const block = (title, rows, extra) =>
+    el(
+      "div",
+      { class: "card" },
+      el("h2", {}, title),
+      el(
+        "table",
+        { class: "data" },
+        el(
+          "tbody",
+          {},
+          rows.map((row) =>
+            el(
+              "tr",
+              { class: "group-row" },
+              el("td", {}, row.name),
+              el("td", { class: "num" }, fmt(row.amount)),
+            ),
+          ),
+          ...rows.flatMap((row) =>
+            (row.groups ?? []).flatMap((group) => [
+              el(
+                "tr",
+                { class: "subgroup-row" },
+                el("td", { class: "indent-1" }, group.name),
+                el("td", { class: "num" }, fmt(group.amount)),
+              ),
+              ...group.ledgers.map((ledger) =>
+                el(
+                  "tr",
+                  {},
+                  el("td", { class: "indent-2" }, ledger.name),
+                  el("td", { class: "num" }, fmt(ledger.amount)),
+                ),
+              ),
+            ]),
+          ),
+          ...(extra ?? []),
+          el(
+            "tr",
+            { class: "total-row" },
+            el("td", {}, "Total"),
+            el(
+              "td",
+              { class: "num" },
+              fmt(
+                title === "Liabilities"
+                  ? report.totals.liabilities
+                  : report.totals.assets,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+  const extraLiabilities = [
+    el(
+      "tr",
+      { class: "group-row" },
+      el("td", {}, "Profit & Loss A/c"),
+      el(
+        "td",
+        { class: "num" },
+        fmt(report.profitAndLoss.amount) +
+          (report.profitAndLoss.isLoss ? " (loss)" : ""),
+      ),
+    ),
+  ];
+
+  view.replaceChildren(
+    reportHead("Balance Sheet", `${report.company} · as on`, [
+      el("input", {
+        type: "date",
+        value: asOf,
+        onchange: (event) => setOverride("asOf", event.target.value),
+      }),
+      el("button", { class: "button", onclick: () => window.print() }, "Print"),
+    ]),
+    el(
+      "div",
+      { class: "toolbar" },
+      el(
+        "span",
+        { class: `badge ${report.balanced ? "ok" : "bad"}` },
+        report.balanced
+          ? "Assets equal liabilities"
+          : `Difference ${fmt(report.difference)}`,
+      ),
+      el(
+        "span",
+        { class: "badge neutral" },
+        `Closing stock ${fmt(report.stock.closing)}`,
+      ),
+      el("span", { class: "spacer" }),
+      el(
+        "span",
+        { class: "muted small" },
+        "Inventory replaces the stock ledger balance; the movement is in the P&L.",
+      ),
+    ),
+    el(
+      "section",
+      { class: "grid cols-2" },
+      block("Liabilities", report.liabilities, extraLiabilities),
+      block("Assets", report.assets),
+    ),
+  );
+}
+
+async function renderProfitLoss() {
+  const from = state.params.from ?? state.company.financialYearStart;
+  const to = state.params.to ?? state.company.financialYearEnd;
+  const report = await api(`/api/reports/profit-loss?from=${from}&to=${to}`);
+
+  const section = (title, data) =>
+    el(
+      "div",
+      {},
+      el(
+        "h3",
+        {
+          class: "subgroup-row",
+          style: "padding:8px 0;margin:8px 0 4px;font-size:13px",
+        },
+        title,
+        el("span", { class: "num" }, fmt(data.total)),
+      ),
+      el(
+        "table",
+        { class: "data" },
+        el(
+          "tbody",
+          {},
+          data.rows.flatMap((row) => [
+            el(
+              "tr",
+              { class: "subgroup-row" },
+              el("td", {}, row.name),
+              el("td", { class: "num" }, fmt(row.amount)),
+            ),
+            ...row.ledgers.map((ledger) =>
+              el(
+                "tr",
+                {},
+                el("td", { class: "indent-1" }, ledger.name),
+                el("td", { class: "num" }, fmt(ledger.amount)),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+
+  const dateRange = el(
+    "div",
+    { style: "display:flex;gap:8px" },
+    el("input", {
+      type: "date",
+      value: from,
+      onchange: (event) => setOverride("from", event.target.value),
+    }),
+    el("input", {
+      type: "date",
+      value: to,
+      onchange: (event) => setOverride("to", event.target.value),
+    }),
+  );
+
+  view.replaceChildren(
+    reportHead("Profit & Loss", `${report.company} · ${from} to ${to}`, [
+      dateRange,
+      el("button", { class: "button", onclick: () => window.print() }, "Print"),
+    ]),
+    el(
+      "div",
+      { class: "grid cols-2" },
+      el(
+        "div",
+        { class: "card" },
+        el("h2", {}, "Trading account"),
+        section("Direct incomes", report.directIncome),
+        section("Direct expenses", report.directExpense),
+        el(
+          "div",
+          { class: "list-plain", style: "margin-top:14px" },
+          el(
+            "li",
+            {},
+            el("span", {}, "Gross profit"),
+            el("strong", { class: "mono" }, fmt(report.grossProfit)),
+          ),
+        ),
+      ),
+      el(
+        "div",
+        { class: "card" },
+        el("h2", {}, "Profit & loss account"),
+        section("Indirect incomes", report.indirectIncome),
+        section("Indirect expenses", report.indirectExpense),
+        el(
+          "div",
+          { class: "list-plain", style: "margin-top:14px" },
+          el(
+            "li",
+            {},
+            el("span", {}, "Gross profit b/f"),
+            el("strong", { class: "mono" }, fmt(report.grossProfit)),
+          ),
+          el(
+            "li",
+            { style: "font-size:15px" },
+            el("strong", {}, report.isLoss ? "Net loss" : "Net profit"),
+            el("strong", { class: "mono" }, fmt(report.netProfit)),
+          ),
+          el(
+            "li",
+            {},
+            el("span", {}, "Opening stock"),
+            el("strong", { class: "mono" }, fmt(report.stock.opening)),
+          ),
+          el(
+            "li",
+            {},
+            el("span", {}, "Closing stock"),
+            el("strong", { class: "mono" }, fmt(report.stock.closing)),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+async function renderDayBook() {
+  let date = state.params.asOf;
+  if (date === undefined) {
+    const latest = await api("/api/vouchers?limit=1");
+    date = latest.vouchers[0]?.date ?? today();
+  }
+  const report = await api(`/api/reports/day-book?date=${date}`);
+  view.replaceChildren(
+    reportHead("Day Book", `${report.company} · ${report.count} vouchers on`, [
+      el("input", {
+        type: "date",
+        value: date,
+        onchange: (event) => setOverride("asOf", event.target.value),
+      }),
+      el("button", { class: "button", onclick: () => window.print() }, "Print"),
+    ]),
+    el(
+      "div",
+      { class: "card" },
+      report.vouchers.length === 0
+        ? el("div", { class: "empty" }, "No vouchers on this date.")
+        : el(
+            "div",
+            { class: "table-wrap" },
+            el(
+              "table",
+              { class: "data" },
+              el(
+                "thead",
+                {},
+                el(
+                  "tr",
+                  {},
+                  el("th", {}, "Voucher"),
+                  el("th", {}, "Debit ledgers"),
+                  el("th", {}, "Credit ledgers"),
+                  el("th", { class: "num" }, "Amount"),
+                ),
+              ),
+              el(
+                "tbody",
+                {},
+                report.vouchers.map((voucher) =>
+                  el(
+                    "tr",
+                    {},
+                    el(
+                      "td",
+                      {},
+                      el("div", { class: "mono" }, voucher.number),
+                      el(
+                        "div",
+                        { class: "muted small" },
+                        `${voucher.typeName}${voucher.party ? ` · ${voucher.party}` : ""}`,
+                      ),
+                    ),
+                    el(
+                      "td",
+                      {},
+                      voucher.debitLedgers.map((line) =>
+                        el(
+                          "div",
+                          {},
+                          `${line.ledger} `,
+                          el(
+                            "span",
+                            { class: "muted small" },
+                            fmt(line.amount),
+                          ),
+                        ),
+                      ),
+                    ),
+                    el(
+                      "td",
+                      {},
+                      voucher.creditLedgers.map((line) =>
+                        el(
+                          "div",
+                          {},
+                          `${line.ledger} `,
+                          el(
+                            "span",
+                            { class: "muted small" },
+                            fmt(line.amount),
+                          ),
+                        ),
+                      ),
+                    ),
+                    el("td", { class: "num" }, fmt(voucher.total)),
+                  ),
+                ),
+                el(
+                  "tr",
+                  { class: "total-row" },
+                  el("td", {}, "Total"),
+                  el("td", { class: "num" }, fmt(report.totals.debit)),
+                  el("td", { class: "num" }, fmt(report.totals.credit)),
+                  el("td", {}),
+                ),
+              ),
+            ),
+          ),
+    ),
+  );
+}
+
+async function renderLedgerReport(ledgerId) {
+  const ledgers =
+    state.ledgers.length > 0
+      ? state.ledgers
+      : (await api("/api/ledgers")).ledgers;
+  state.ledgers = ledgers;
+  const id = ledgerId ?? ledgers[0]?.id;
+  if (id === undefined) {
+    view.replaceChildren(
+      el("div", { class: "card empty" }, "Create a ledger first."),
+    );
+    return;
+  }
+  const from = state.params.from ?? state.company.financialYearStart;
+  const to = state.params.to ?? state.company.financialYearEnd;
+  const report = await api(
+    `/api/reports/ledger?ledgerId=${id}&from=${from}&to=${to}`,
+  );
+
+  const picker = el(
+    "select",
+    { onchange: (event) => navigate(`#/report/ledger/${event.target.value}`) },
+    ledgers.map((ledger) =>
+      el(
+        "option",
+        { value: ledger.id, selected: ledger.id === id },
+        `${ledger.name} (${ledger.group})`,
+      ),
+    ),
+  );
+
+  view.replaceChildren(
+    reportHead(
+      `${report.ledger.name}`,
+      `${report.ledger.group} · ${from} to ${to}`,
+      [
+        picker,
+        el("input", {
+          type: "date",
+          value: from,
+          onchange: (event) => setOverride("from", event.target.value),
+        }),
+        el("input", {
+          type: "date",
+          value: to,
+          onchange: (event) => setOverride("to", event.target.value),
+        }),
+        el(
+          "button",
+          { class: "button", onclick: () => window.print() },
+          "Print",
+        ),
+      ],
+    ),
+    el(
+      "div",
+      { class: "card" },
+      el(
+        "div",
+        { class: "toolbar" },
+        el(
+          "span",
+          { class: "badge neutral" },
+          `Opening ${fmt(report.opening)} ${report.openingType}`,
+        ),
+        el(
+          "span",
+          { class: "badge ok" },
+          `Closing ${fmt(report.closing)} ${report.closingType}`,
+        ),
+      ),
+      el(
+        "div",
+        { class: "table-wrap" },
+        el(
+          "table",
+          { class: "data" },
+          el(
+            "thead",
+            {},
+            el(
+              "tr",
+              {},
+              el("th", {}, "Date"),
+              el("th", {}, "Voucher"),
+              el("th", {}, "Particulars"),
+              el("th", { class: "num" }, "Debit"),
+              el("th", { class: "num" }, "Credit"),
+              el("th", { class: "num" }, "Balance"),
+            ),
+          ),
+          el(
+            "tbody",
+            {},
+            el(
+              "tr",
+              { class: "subgroup-row" },
+              el("td", {}, ""),
+              el("td", {}, ""),
+              el("td", {}, "Opening balance"),
+              el("td", {}, ""),
+              el("td", {}, ""),
+              el("td", { class: "num" }, fmt(report.opening)),
+            ),
+            report.entries.map((entry) =>
+              el(
+                "tr",
+                {},
+                el("td", { class: "mono nowrap" }, entry.date),
+                el(
+                  "td",
+                  {},
+                  el("div", { class: "mono" }, entry.number),
+                  el("div", { class: "muted small" }, entry.type),
+                ),
+                el("td", {}, entry.particulars || entry.narration || "—"),
+                el(
+                  "td",
+                  { class: "num debit" },
+                  entry.debit ? fmt(entry.debit) : "",
+                ),
+                el(
+                  "td",
+                  { class: "num credit" },
+                  entry.credit ? fmt(entry.credit) : "",
+                ),
+                el("td", { class: "num" }, fmt(entry.balance)),
+              ),
+            ),
+            el(
+              "tr",
+              { class: "total-row" },
+              el("td", { colspan: "3" }, "Closing balance"),
+              el("td", { class: "num" }, fmt(report.totals.debit)),
+              el("td", { class: "num" }, fmt(report.totals.credit)),
+              el(
+                "td",
+                { class: "num" },
+                `${fmt(report.closing)} ${report.closingType}`,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+async function renderOutstanding() {
+  const type = state.params.type === "payable" ? "payable" : "receivable";
+  const asOf = state.params.asOf ?? state.company.financialYearEnd;
+  const report = await api(
+    `/api/reports/outstanding?type=${type}&asOf=${asOf}`,
+  );
+  view.replaceChildren(
+    reportHead(
+      type === "payable" ? "Bills Payable" : "Bills Receivable",
+      `${report.group} · as on ${asOf}`,
+      [
+        el(
+          "button",
+          {
+            class: "button",
+            onclick: () =>
+              setOverride(
+                "type",
+                type === "payable" ? "receivable" : "payable",
+              ),
+          },
+          type === "payable" ? "Show receivables" : "Show payables",
+        ),
+        el("input", {
+          type: "date",
+          value: asOf,
+          onchange: (event) => setOverride("asOf", event.target.value),
+        }),
+      ],
+    ),
+    el(
+      "div",
+      { class: "grid cols-4" },
+      statCard(
+        "Total",
+        fmt(report.total),
+        `${report.parties.length} parties`,
+        "accent",
+      ),
+      statCard("0–30 days", fmt(report.ageing.current), "Current", "debit"),
+      statCard(
+        "31–90 days",
+        fmt(Number(report.ageing.d30) + Number(report.ageing.d60)),
+        "Watch closely",
+        "debit",
+      ),
+      statCard(
+        "Over 90 days",
+        fmt(Number(report.ageing.d90) + Number(report.ageing.older)),
+        "Follow up",
+        "credit",
+      ),
+    ),
+    el(
+      "div",
+      { class: "card", style: "margin-top:16px" },
+      el(
+        "div",
+        { class: "table-wrap" },
+        el(
+          "table",
+          { class: "data" },
+          el(
+            "thead",
+            {},
+            el(
+              "tr",
+              {},
+              el("th", {}, "Party"),
+              el("th", { class: "num" }, "Balance"),
+              el("th", {}, "Credit days"),
+              el("th", {}, "Bills"),
+            ),
+          ),
+          el(
+            "tbody",
+            {},
+            report.parties.map((party) =>
+              el(
+                "tr",
+                {},
+                el("td", {}, party.name),
+                el("td", { class: "num" }, fmt(party.balance)),
+                el("td", {}, party.creditDays ?? "—"),
+                el(
+                  "td",
+                  { class: "small muted" },
+                  party.bills
+                    .map(
+                      (bill) =>
+                        `${bill.number} · ${fmt(bill.amount)} · ${bill.ageDays}d`,
+                    )
+                    .join("  |  "),
+                ),
+              ),
+            ),
+            el(
+              "tr",
+              { class: "total-row" },
+              el("td", {}, "Total"),
+              el("td", { class: "num" }, fmt(report.total)),
+              el("td", {}),
+              el("td", {}),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+async function renderStockSummary() {
+  const asOf = state.params.asOf ?? state.company.financialYearEnd;
+  const report = await api(`/api/reports/stock-summary?asOf=${asOf}`);
+  view.replaceChildren(
+    reportHead("Stock Summary", `${report.company} · as on ${asOf}`, [
+      el("input", {
+        type: "date",
+        value: asOf,
+        onchange: (event) => setOverride("asOf", event.target.value),
+      }),
+      el("button", { class: "button", onclick: () => window.print() }, "Print"),
+    ]),
+    el(
+      "div",
+      { class: "card" },
+      el(
+        "div",
+        { class: "table-wrap" },
+        el(
+          "table",
+          { class: "data" },
+          el(
+            "thead",
+            {},
+            el(
+              "tr",
+              {},
+              el("th", {}, "Item"),
+              el("th", {}, "Group"),
+              el("th", { class: "num" }, "Opening"),
+              el("th", { class: "num" }, "Inward"),
+              el("th", { class: "num" }, "Outward"),
+              el("th", { class: "num" }, "Closing"),
+              el("th", { class: "num" }, "Rate"),
+              el("th", { class: "num" }, "Value"),
+            ),
+          ),
+          el(
+            "tbody",
+            {},
+            report.rows.map((row) =>
+              el(
+                "tr",
+                {},
+                el("td", {}, row.name),
+                el("td", { class: "muted" }, row.group ?? "—"),
+                el("td", { class: "num" }, `${row.openingQty} ${row.unit}`),
+                el("td", { class: "num" }, row.inwardQty),
+                el("td", { class: "num" }, row.outwardQty),
+                el("td", { class: "num" }, `${row.closingQty} ${row.unit}`),
+                el("td", { class: "num" }, fmt(row.rate)),
+                el("td", { class: "num" }, fmt(row.value)),
+              ),
+            ),
+            el(
+              "tr",
+              { class: "total-row" },
+              el("td", { colspan: "7" }, "Total closing value"),
+              el("td", { class: "num" }, fmt(report.totalValue)),
+            ),
+          ),
+        ),
+      ),
+      el(
+        "p",
+        { class: "muted small", style: "margin:12px 0 0" },
+        "Valued at weighted average cost of opening stock and inward receipts. Stock-in-Hand is a reserved ledger group; inventory owns it.",
+      ),
+    ),
+  );
+}
+
+async function renderGstSummary() {
+  const from = state.params.from ?? state.company.financialYearStart;
+  const to = state.params.to ?? state.company.financialYearEnd;
+  const report = await api(`/api/reports/gst-summary?from=${from}&to=${to}`);
+  view.replaceChildren(
+    reportHead("GST Summary", `${from} to ${to}`, [
+      el("input", {
+        type: "date",
+        value: from,
+        onchange: (event) => setOverride("from", event.target.value),
+      }),
+      el("input", {
+        type: "date",
+        value: to,
+        onchange: (event) => setOverride("to", event.target.value),
+      }),
+    ]),
+    el(
+      "div",
+      { class: "grid cols-3" },
+      statCard(
+        "Output tax",
+        fmt(report.outputTotal),
+        "Collected on sales",
+        "credit",
+      ),
+      statCard(
+        "Input credit",
+        fmt(report.inputTotal),
+        "Paid on purchases",
+        "debit",
+      ),
+      statCard(
+        "Net payable",
+        fmt(report.netPayable),
+        "Before set-off adjustments",
+        "accent",
+      ),
+    ),
+    el(
+      "div",
+      { class: "card", style: "margin-top:16px" },
+      el(
+        "table",
+        { class: "data" },
+        el(
+          "thead",
+          {},
+          el(
+            "tr",
+            {},
+            el("th", {}, "Ledger"),
+            el("th", {}, "Head"),
+            el("th", {}, "Kind"),
+            el("th", { class: "num" }, "Amount"),
+          ),
+        ),
+        el(
+          "tbody",
+          {},
+          report.lines.map((line) =>
+            el(
+              "tr",
+              {},
+              el("td", {}, line.ledger),
+              el("td", {}, line.tax),
+              el("td", {}, line.kind === "output" ? "Output" : "Input credit"),
+              el("td", { class: "num" }, fmt(line.amount)),
+            ),
+          ),
+        ),
+      ),
+      el(
+        "p",
+        { class: "muted small", style: "margin:12px 0 0" },
+        "Input credit is carried forward in the books; utilisation is a separate journal entry.",
+      ),
+    ),
+  );
+}
+
+/* -------------------------------------------------------------------- data */
+
+async function renderData() {
+  const health = await api("/api/health");
+  const dropzone = el(
+    "div",
+    { class: "dropzone", role: "button", tabindex: "0" },
+    "Drop a Tally XML envelope here, or click to choose a file",
+  );
+  const fileInput = el("input", {
+    type: "file",
+    accept: ".xml,text/xml,application/xml",
+    hidden: true,
+  });
+
+  const importFile = async (file) => {
+    try {
+      const text = await file.text();
+      const result = await api("/api/import/xml", {
+        method: "POST",
+        body: text,
+        headers: { "content-type": "application/xml" },
+      });
+      notify(
+        `Imported ${result.ledgers} ledgers and ${result.vouchers} vouchers (${result.skipped} skipped)`,
+        "ok",
+      );
+      if (result.warnings?.length) console.warn(result.warnings);
+      render();
+    } catch (error) {
+      notify(error.message, "error");
+    }
+  };
+
+  dropzone.addEventListener("click", () => fileInput.click());
+  dropzone.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") fileInput.click();
+  });
+  dropzone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    dropzone.classList.add("dragover");
+  });
+  dropzone.addEventListener("dragleave", () =>
+    dropzone.classList.remove("dragover"),
+  );
+  dropzone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    dropzone.classList.remove("dragover");
+    const file = event.dataTransfer?.files?.[0];
+    if (file) importFile(file);
+  });
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files?.[0];
+    if (file) importFile(file);
+  });
+
+  view.replaceChildren(
+    el(
+      "div",
+      { class: "page-head" },
+      el(
+        "div",
+        {},
+        el("h1", {}, "Data"),
+        el("p", { class: "sub" }, "Interchange, backup and demo data"),
+      ),
+    ),
+    el(
+      "div",
+      { class: "grid cols-2" },
+      el(
+        "div",
+        { class: "card" },
+        el("h2", {}, "Tally XML"),
+        el(
+          "p",
+          { class: "muted small" },
+          "Export masters and vouchers as a Tally envelope, or import one produced by Tally Prime. Debits are ISDEEMEDPOSITIVE with negative amounts, as Tally writes them.",
+        ),
+        el(
+          "div",
+          { style: "display:flex;gap:8px;flex-wrap:wrap;margin:12px 0" },
+          el(
+            "a",
+            { class: "button primary", href: "/api/export/xml", download: "" },
+            "Download XML",
+          ),
+          el(
+            "a",
+            { class: "button", href: "/api/export/xml?masters=false" },
+            "Vouchers only",
+          ),
+        ),
+        dropzone,
+        fileInput,
+      ),
+      el(
+        "div",
+        { class: "card" },
+        el("h2", {}, "Workspace"),
+        el(
+          "ul",
+          { class: "list-plain" },
+          el(
+            "li",
+            {},
+            el("span", {}, "Company"),
+            el("strong", {}, health.statistics?.company?.name ?? "—"),
+          ),
+          el(
+            "li",
+            {},
+            el("span", {}, "Ledgers"),
+            el(
+              "strong",
+              { class: "mono" },
+              String(health.statistics?.counts?.ledgers ?? 0),
+            ),
+          ),
+          el(
+            "li",
+            {},
+            el("span", {}, "Vouchers"),
+            el(
+              "strong",
+              { class: "mono" },
+              String(health.statistics?.counts?.vouchers ?? 0),
+            ),
+          ),
+          el(
+            "li",
+            {},
+            el("span", {}, "Database"),
+            el("strong", { class: "mono small" }, health.database),
+          ),
+        ),
+        el(
+          "div",
+          { style: "margin-top:14px;display:flex;gap:8px;flex-wrap:wrap" },
+          el(
+            "button",
+            {
+              class: "button danger",
+              onclick: async () => {
+                if (
+                  !confirm(
+                    "Re-seed the demo company? Existing data is kept; seeding only runs on an empty book.",
+                  )
+                )
+                  return;
+                await api("/api/demo/reset", { method: "POST" });
+                notify("Demo data loaded", "ok");
+                render();
+              },
+            },
+            "Load demo data",
+          ),
+        ),
+        el("h3", { style: "margin-top:18px" }, "REST surface"),
+        el(
+          "div",
+          { class: "code-block" },
+          `GET  /api/reports/trial-balance?asOf=2026-10-24
+GET  /api/reports/balance-sheet
+GET  /api/reports/profit-loss?from=&to=
+POST /api/vouchers
+GET  /api/export/xml
+POST /api/import/xml`,
+        ),
+      ),
+    ),
+  );
+}
+
+/* ------------------------------------------------------------------- modal */
+
+function openModal(title, body, actions = []) {
+  const root = document.getElementById("modal-root");
+  const close = () => closeModal();
+  const modal = el(
+    "div",
+    {
+      class: "modal",
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-label": title,
+    },
+    el(
+      "header",
+      {},
+      el("h2", {}, title),
+      el(
+        "button",
+        { class: "button ghost", onclick: close, "aria-label": "Close" },
+        "✕",
+      ),
+    ),
+    el("div", { class: "body" }, body),
+    actions.length > 0 ? el("footer", {}, actions) : null,
+  );
+  const backdrop = el(
+    "div",
+    {
+      class: "modal-backdrop",
+      onclick: (event) => {
+        if (event.target === backdrop) close();
+      },
+    },
+    modal,
+  );
+  root.replaceChildren(backdrop);
+  const focusable = modal.querySelector("input, select, textarea, button");
+  focusable?.focus();
+}
+
+function closeModal() {
+  document.getElementById("modal-root").replaceChildren();
+}
+
+function openHelp() {
+  const rows = [
+    ["F4 / F5 / F6", "Contra, Payment, Receipt voucher"],
+    ["F7 / F8 / F9", "Journal, Sales, Purchase voucher"],
+    ["Ctrl + A", "Accept the open voucher"],
+    ["Esc", "Go back"],
+    ["Alt + F1", "Toggle detailed and summary reports"],
+    ["?", "This help"],
+  ];
+  openModal(
+    "Keyboard shortcuts",
+    el(
+      "div",
+      { class: "shortcut-grid" },
+      rows.flatMap(([keys, description]) => [
+        el("kbd", {}, keys),
+        el("span", {}, description),
+      ]),
+    ),
+    [el("button", { class: "button primary", onclick: closeModal }, "Got it")],
+  );
+}
+
+/* --------------------------------------------------------------- shortcuts */
+
+const VOUCHER_KEYS = {
+  F4: "CONTRA",
+  F5: "PAYMENT",
+  F6: "RECEIPT",
+  F7: "JOURNAL",
+  F8: "SALES",
+  F9: "PURCHASE",
+};
+
+document.addEventListener("keydown", (event) => {
+  const target = event.target;
+  const typing =
+    target instanceof HTMLElement &&
+    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
+
+  if (event.key === "Escape") {
+    if (document.getElementById("modal-root").children.length > 0) {
+      closeModal();
+      event.preventDefault();
+      return;
+    }
+    if (location.hash !== "#/gateway" && !typing) {
+      history.back();
+      event.preventDefault();
+    }
+    return;
+  }
+
+  if (
+    (event.ctrlKey || event.metaKey) &&
+    event.key.toLowerCase() === "a" &&
+    state.screen === "voucher-new"
+  ) {
+    event.preventDefault();
+    document.querySelector(".voucher-sheet .button.primary")?.click();
+    return;
+  }
+
+  if (event.altKey && event.key === "F1") {
+    event.preventDefault();
+    state.detailed = !state.detailed;
+    notify(state.detailed ? "Detailed reports" : "Summary reports", "info");
+    render();
+    return;
+  }
+
+  if (typing) return;
+
+  const code = VOUCHER_KEYS[event.key];
+  if (code !== undefined) {
+    event.preventDefault();
+    navigate(`#/voucher/new?type=${code}`);
+    return;
+  }
+
+  if (event.key === "?") {
+    event.preventDefault();
+    openHelp();
+  }
+});
+
+nav.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-nav]");
+  if (button === null) return;
+  const screen = button.dataset.nav;
+  navigate(
+    screen === "masters"
+      ? "#/masters"
+      : screen === "vouchers"
+        ? "#/vouchers"
+        : screen === "reports"
+          ? "#/reports"
+          : screen === "data"
+            ? "#/data"
+            : "#/gateway",
+  );
+});
+
+window.addEventListener("hashchange", render);
+
+/* -------------------------------------------------------------------- boot */
+
+async function boot() {
+  try {
+    const [catalog, company] = await Promise.all([
+      api("/api/catalog"),
+      api("/api/company"),
+    ]);
+    state.catalog = catalog;
+    state.company = company;
+    paintHeader();
+    document.getElementById("ticker").hidden = true;
+    await render();
+  } catch (error) {
+    paintHeader();
+    notify(error.message, "error");
+    view.replaceChildren(
+      el(
+        "div",
+        { class: "card" },
+        el("h2", {}, "No company loaded"),
+        el(
+          "p",
+          { class: "muted" },
+          "Load the demo company to explore TallyCraft.",
+        ),
+        el(
+          "button",
+          {
+            class: "button primary",
+            onclick: async () => {
+              await api("/api/demo/reset", { method: "POST" });
+              location.reload();
+            },
+          },
+          "Load demo company",
+        ),
+      ),
+    );
+  }
+}
+
+/* -------------------------------------------------------------- web app shell */
+
+/*
+ * Installable-app behaviour. None of this is required for the accounting
+ * screens to work; it is what turns the page into an app: an install button
+ * when the browser offers one, an honest connection pill, and a service
+ * worker that keeps the last known book readable when the network drops.
+ */
+
+const installButton = document.getElementById("install-app");
+const netStatus = document.getElementById("net-status");
+let installPrompt = null;
+
+if (installButton !== null) {
+  window.addEventListener("beforeinstallprompt", (event) => {
+    // Keep the browser's mini-infobar out of the way and offer our own,
+    // which sits in the header next to the company name.
+    event.preventDefault();
+    installPrompt = event;
+    installButton.hidden = false;
+  });
+
+  installButton.addEventListener("click", async () => {
+    if (installPrompt === null) {
+      notify(
+        "Use your browser menu → “Install app” / “Add to Home screen”.",
+        "info",
+      );
+      return;
+    }
+    installPrompt.prompt();
+    const choice = await installPrompt.userChoice.catch(() => null);
+    installPrompt = null;
+    installButton.hidden = true;
+    if (choice?.outcome === "accepted") {
+      notify("TallyCraft installed. Open it from your home screen.", "ok");
+    }
+  });
+
+  window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    installButton.hidden = true;
+  });
+
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+  if (standalone) installButton.hidden = true;
+}
+
+/** Say it plainly when the browser has no network at all. */
+function paintConnection() {
+  if (netStatus === null) return;
+  if (navigator.onLine) {
+    netStatus.hidden = true;
+    netStatus.textContent = "";
+    return;
+  }
+  netStatus.hidden = false;
+  netStatus.dataset.state = "offline";
+  netStatus.textContent = "offline";
+  netStatus.title =
+    "No network. Showing the last copy this app saved on this device.";
+}
+
+window.addEventListener("offline", () => {
+  paintConnection();
+  notify(
+    "You are offline. The last saved copy of the book stays readable.",
+    "error",
+  );
+});
+
+window.addEventListener("online", () => {
+  paintConnection();
+  notify("Back online.", "ok");
+  // Refresh whatever screen is open with live numbers.
+  render();
+});
+
+paintConnection();
+
+/** Tell the operator that a newer shell is waiting, and let them take it. */
+function announceUpdate(worker) {
+  notify("A new version of TallyCraft is ready.", "info", {
+    label: "Reload",
+    run: () => {
+      worker.postMessage("SKIP_WAITING");
+      location.reload();
+    },
+  });
+}
+
+// A static build inlines its data and still wants the worker, so the app is
+// installable and opens offline; the live server does not inline data.
+const wantsWorker =
+  "serviceWorker" in navigator &&
+  location.protocol.startsWith("http") &&
+  (window.__TALLYCRAFT_DATA__ === undefined ||
+    window.__TALLYCRAFT_STATIC_HOSTED__ === true);
+
+if (wantsWorker) {
+  window.addEventListener("load", async () => {
+    try {
+      // Resolved against the document, so the same client works at / and at
+      // /some/subpath/ without a build-time rewrite.
+      const base = document.baseURI;
+      const registration = await navigator.serviceWorker.register(
+        new URL("sw.js", base),
+        { scope: new URL("./", base).pathname },
+      );
+      if (registration.waiting !== null && navigator.serviceWorker.controller) {
+        announceUpdate(registration.waiting);
+      }
+      registration.addEventListener("updatefound", () => {
+        const worker = registration.installing;
+        if (worker === null) return;
+        worker.addEventListener("statechange", () => {
+          if (
+            worker.state === "installed" &&
+            navigator.serviceWorker.controller !== null
+          ) {
+            announceUpdate(worker);
+          }
+        });
+      });
+    } catch (error) {
+      // No worker (private mode, unsupported browser, file://): the app is
+      // fully functional without offline caching.
+      console.warn("offline cache unavailable:", error.message);
+    }
+  });
+}
+
+boot();
+</script>
+  </body>
+</html>

@@ -195,6 +195,16 @@ export function createAppServer({
       return;
     }
     let info = await stat(filePath).catch(() => null);
+    if (info !== null && info.isDirectory()) {
+      // A directory serves its own index.html first (the static web app lives
+      // at /static/), and only then the SPA shell.
+      const own = join(filePath, "index.html");
+      const ownInfo = await stat(own).catch(() => null);
+      if (ownInfo !== null) {
+        filePath = own;
+        info = ownInfo;
+      }
+    }
     if (info === null || info.isDirectory()) {
       filePath = join(root, "index.html");
       info = await stat(filePath).catch(() => null);

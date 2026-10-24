@@ -145,3 +145,38 @@ anyway and lists the port in `skipped`. That way a preview proxy pointed at a
 conventional dev port (8080, 5173) still reaches this instance.
 
 Binding is always `0.0.0.0` so the preview proxy can reach it.
+
+---
+
+## When the preview says "Sandbox not found"
+
+That message is the platform's, not ours: the sandbox that owned the URL was
+recycled, so `https://<port>-<old-sandbox>.e2b.app` no longer resolves. The app
+was never down; its address changed.
+
+Diagnose in one call:
+
+```bash
+curl -s localhost:3000/api/instance | head -20     # port, sandboxId, previewUrl
+ss -ltnp | grep :3000                              # is this sandbox listening?
+```
+
+If `/api/instance` answers, the app is healthy and only the URL in the browser
+tab is stale. Compare the `sandboxId` it reports with the one in the address
+bar; they must match.
+
+Options, in order of durability:
+
+| Option            | Survives a recycle? | How                                                      |
+| ----------------- | ------------------- | -------------------------------------------------------- |
+| Fresh preview URL | No                  | reopen `previewUrl` from `/api/instance`                 |
+| Alias ports       | No                  | `8080-`, `5173-`, `4000-` on the same sandbox id         |
+| Static web app    | **Yes**             | `npm run build:static` → host `public/static` anywhere   |
+| Deployed instance | **Yes**             | `docker compose up -d` on a host you control (DEPLOY.md) |
+
+The static web app needs no process, no port and no API, so no sandbox can take
+it away. It is read-only by design; the deployed instance is the writable one.
+
+A recycled sandbox also loses `data/`. `npm run up` (or the supervisor) reseeds
+the demo book on start; a real book only ever lives on a host you control, with
+the backups described in DEPLOY.md.

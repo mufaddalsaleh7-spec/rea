@@ -13,6 +13,7 @@
   "scripts": {
     "backup": "node scripts/backup.mjs",
     "bootstrap": "node scripts/bootstrap.mjs",
+    "build:static": "node scripts/build-static.mjs",
     "check": "node scripts/bootstrap.mjs --check",
     "docker:build": "docker build -t tallycraft:1.0.0 .",
     "docker:logs": "docker compose logs -f --tail 100",

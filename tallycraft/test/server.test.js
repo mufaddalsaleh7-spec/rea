@@ -359,11 +359,43 @@ test("every file the worker precaches is actually served", async () => {
   const block = /const SHELL = \[([\s\S]*?)\];/.exec(source);
   assert.ok(block, "SHELL list not found");
   const paths = [...block[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
-  assert.ok(paths.includes("/"), "the shell must include /");
-  assert.ok(paths.includes("/app.js"));
+  // Entries are scope-relative so the same worker serves / and /rea/.
+  assert.ok(paths.includes("./"), "the shell must include ./");
+  assert.ok(paths.includes("index.html"));
+  assert.ok(paths.includes("app.js"));
 
   for (const path of paths) {
-    const response = await fetch(`${base}${path}`);
+    const target = path === "./" ? `${base}/` : `${base}/${path}`;
+    const response = await fetch(target);
     assert.equal(response.status, 200, `precached path ${path} is missing`);
+  }
+});
+
+test("the server also serves the standalone static web app", async () => {
+  const page = await fetch(`${base}/static/`);
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /window\.__TALLYCRAFT_STATIC_HOSTED__ = true/);
+  assert.match(html, /STATIC WEB APP/);
+
+  const manifest = await fetch(`${base}/static/manifest.webmanifest`);
+  assert.equal(
+    manifest.headers.get("content-type"),
+    "application/manifest+json; charset=utf-8",
+  );
+  const parsed = await manifest.json();
+  assert.equal(
+    parsed.start_url,
+    "./",
+    "the static copy must be path-independent",
+  );
+
+  for (const asset of ["sw.js", "icons/icon-192.png", "favicon.ico"]) {
+    const response = await fetch(`${base}/static/${asset}`);
+    assert.equal(
+      response.status,
+      200,
+      `${asset} is missing from the static build`,
+    );
   }
 });

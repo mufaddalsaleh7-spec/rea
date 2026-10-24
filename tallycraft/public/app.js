@@ -2966,16 +2966,24 @@ function announceUpdate(worker) {
   });
 }
 
-if (
+// A static build inlines its data and still wants the worker, so the app is
+// installable and opens offline; the live server does not inline data.
+const wantsWorker =
   "serviceWorker" in navigator &&
-  window.__TALLYCRAFT_DATA__ === undefined &&
-  location.protocol.startsWith("http")
-) {
+  location.protocol.startsWith("http") &&
+  (window.__TALLYCRAFT_DATA__ === undefined ||
+    window.__TALLYCRAFT_STATIC_HOSTED__ === true);
+
+if (wantsWorker) {
   window.addEventListener("load", async () => {
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js", {
-        scope: "/",
-      });
+      // Resolved against the document, so the same client works at / and at
+      // /some/subpath/ without a build-time rewrite.
+      const base = document.baseURI;
+      const registration = await navigator.serviceWorker.register(
+        new URL("sw.js", base),
+        { scope: new URL("./", base).pathname },
+      );
       if (registration.waiting !== null && navigator.serviceWorker.controller) {
         announceUpdate(registration.waiting);
       }
