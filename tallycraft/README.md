@@ -101,16 +101,36 @@ The supervisor reuses or skips a held port, restarts on crash with backoff,
 restarts on hang after three failed probes, and refuses to double-bind. See
 [docs/RUNBOOK.md](docs/RUNBOOK.md) for the failure model and incident record.
 
-### Two ways to open it
+### Three ways to open it
 
-|              | How                                                              | What you get                                                        |
-| ------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **Live**     | `npm start` → http://localhost:4310 (or the chat's live preview) | Full read-write book: post vouchers, create ledgers, import XML     |
-| **Snapshot** | open `public/snapshot.html` (also served at `/snapshot.html`)    | The same screens over a frozen copy of the book, no server required |
+|               | How                                                              | What you get                                                        |
+| ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Live app**  | `npm start` → http://localhost:3000 (or the chat's live preview) | Full read-write book: post vouchers, create ledgers, import XML     |
+| **Installed** | same URL → **Install app**, or _Add to Home screen_ on a phone   | Standalone window, own icon, offline shell                          |
+| **Snapshot**  | open `public/snapshot.html` (also served at `/snapshot.html`)    | The same screens over a frozen copy of the book, no server required |
 
 The snapshot inlines the API responses (`npm run snapshot`) and swaps `fetch`
-for a lookup table, so one 168 KB HTML file renders real reports offline. It is
+for a lookup table, so one 176 KB HTML file renders real reports offline. It is
 read-only by design; posting is disabled.
+
+### Install it as an app
+
+TallyCraft ships as a progressive web app, so it behaves like a desktop or
+phone app without a wrapper:
+
+- `public/manifest.webmanifest` — name, icons (192/512, maskable), theme
+  colours, standalone display, and three shortcuts (new sale, day book, trial
+  balance) that deep-link the router.
+- `public/sw.js` — a service worker. Navigations are network-first with the
+  cached shell as fallback; `/api/*` reads fall back to the last good response;
+  writes are never faked. The header shows an **offline** pill while the device
+  has no network, and an **Install app** button appears when the browser offers
+  one.
+- Mobile layout — under 640 px the primary navigation becomes a bottom tab bar
+  with 44 px tap targets, the F-key strip is hidden, and safe-area insets are
+  respected in standalone mode.
+- Icons are generated, not pasted: `npm run icons` redraws the PNG set and
+  `favicon.ico` from the same geometry as `public/icons/icon.svg`.
 
 ## Screens
 
@@ -231,9 +251,13 @@ tallycraft/
   src/instance.js        run identity and preview-URL derivation
   src/seed.js            deterministic demo book (Surat Weaves Pvt Ltd)
   scripts/snapshot.mjs   builds public/snapshot.html from the live service
+  scripts/generate-icons.mjs  rasterises the app icons with no dependencies
   scripts/serve.mjs      supervisor: port resolution, restart, watchdog, discovery
   scripts/bootstrap.mjs  idempotent bring-up for a recycled sandbox
   public/                index.html, styles.css, app.js (no build step)
+  public/manifest.webmanifest  installable-app metadata and shortcuts
+  public/sw.js           service worker: offline shell and cached reads
+  public/icons/          generated PNG icons, maskable and apple-touch
   test/                  accounting invariants + HTTP boundary
   docs/                  reconstruction evidence, design notes
 ```
@@ -263,6 +287,7 @@ tallycraft/
 | `--aliases 8080,5173` | Extra ports that answer the same app (default `8080,5173,4000`)   |
 | `npm run bootstrap`   | Repair only, no server                                            |
 | `npm run snapshot`    | Rebuild the offline `public/snapshot.html`                        |
+| `npm run icons`       | Regenerate the PNG icons and `favicon.ico`                        |
 
 Supervisor guarantees, each covered by a test or a recorded manual check:
 
@@ -279,7 +304,7 @@ Supervisor guarantees, each covered by a test or a recorded manual check:
 npm test
 ```
 
-39 tests cover: catalog shape, money parsing and Indian grouping, seeded
+47 tests cover: catalog shape, money parsing and Indian grouping, seeded
 balance, balance-sheet identity on four dates, per-voucher balance, rejection
 paths (unbalanced, too few lines, outside FY, reserved group, unknown ledger,
 duplicate number), numbering, warnings, ledger reconciliation, day-book totals,
@@ -288,7 +313,10 @@ sections, XML round-trip, dry-run rollback, master guards, and the HTTP surface
 including static-path traversal, plus a check that a dry-run import reports
 exactly what the real import would do, and that a generated snapshot inlines
 every response the client asks for, plus the supervisor's port resolution
-(reuse, skip, exhaust), instance identity, and the readiness contract.
+(reuse, skip, exhaust), instance identity, and the readiness contract, plus the
+web-app contract: the manifest is valid and every icon it lists is served, the
+worker is delivered from the root with a root scope, and every path the worker
+precaches actually exists.
 
 ## Licence
 

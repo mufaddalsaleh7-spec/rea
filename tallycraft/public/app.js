@@ -2873,4 +2873,130 @@ async function boot() {
   }
 }
 
+/* -------------------------------------------------------------- web app shell */
+
+/*
+ * Installable-app behaviour. None of this is required for the accounting
+ * screens to work; it is what turns the page into an app: an install button
+ * when the browser offers one, an honest connection pill, and a service
+ * worker that keeps the last known book readable when the network drops.
+ */
+
+const installButton = document.getElementById("install-app");
+const netStatus = document.getElementById("net-status");
+let installPrompt = null;
+
+if (installButton !== null) {
+  window.addEventListener("beforeinstallprompt", (event) => {
+    // Keep the browser's mini-infobar out of the way and offer our own,
+    // which sits in the header next to the company name.
+    event.preventDefault();
+    installPrompt = event;
+    installButton.hidden = false;
+  });
+
+  installButton.addEventListener("click", async () => {
+    if (installPrompt === null) {
+      notify(
+        "Use your browser menu → “Install app” / “Add to Home screen”.",
+        "info",
+      );
+      return;
+    }
+    installPrompt.prompt();
+    const choice = await installPrompt.userChoice.catch(() => null);
+    installPrompt = null;
+    installButton.hidden = true;
+    if (choice?.outcome === "accepted") {
+      notify("TallyCraft installed. Open it from your home screen.", "ok");
+    }
+  });
+
+  window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    installButton.hidden = true;
+  });
+
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+  if (standalone) installButton.hidden = true;
+}
+
+/** Say it plainly when the browser has no network at all. */
+function paintConnection() {
+  if (netStatus === null) return;
+  if (navigator.onLine) {
+    netStatus.hidden = true;
+    netStatus.textContent = "";
+    return;
+  }
+  netStatus.hidden = false;
+  netStatus.dataset.state = "offline";
+  netStatus.textContent = "offline";
+  netStatus.title =
+    "No network. Showing the last copy this app saved on this device.";
+}
+
+window.addEventListener("offline", () => {
+  paintConnection();
+  notify(
+    "You are offline. The last saved copy of the book stays readable.",
+    "error",
+  );
+});
+
+window.addEventListener("online", () => {
+  paintConnection();
+  notify("Back online.", "ok");
+  // Refresh whatever screen is open with live numbers.
+  render();
+});
+
+paintConnection();
+
+/** Tell the operator that a newer shell is waiting, and let them take it. */
+function announceUpdate(worker) {
+  notify("A new version of TallyCraft is ready.", "info", {
+    label: "Reload",
+    run: () => {
+      worker.postMessage("SKIP_WAITING");
+      location.reload();
+    },
+  });
+}
+
+if (
+  "serviceWorker" in navigator &&
+  window.__TALLYCRAFT_DATA__ === undefined &&
+  location.protocol.startsWith("http")
+) {
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("/sw.js", {
+        scope: "/",
+      });
+      if (registration.waiting !== null && navigator.serviceWorker.controller) {
+        announceUpdate(registration.waiting);
+      }
+      registration.addEventListener("updatefound", () => {
+        const worker = registration.installing;
+        if (worker === null) return;
+        worker.addEventListener("statechange", () => {
+          if (
+            worker.state === "installed" &&
+            navigator.serviceWorker.controller !== null
+          ) {
+            announceUpdate(worker);
+          }
+        });
+      });
+    } catch (error) {
+      // No worker (private mode, unsupported browser, file://): the app is
+      // fully functional without offline caching.
+      console.warn("offline cache unavailable:", error.message);
+    }
+  });
+}
+
 boot();

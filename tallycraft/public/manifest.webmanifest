@@ -1,0 +1,60 @@
+{
+  "id": "/",
+  "name": "TallyCraft — Accounting Workspace",
+  "short_name": "TallyCraft",
+  "description": "Keyboard-first double-entry accounting: vouchers, ledgers, trial balance, balance sheet, P&L, inventory and Tally XML interchange.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "any",
+  "theme_color": "#0f4c81",
+  "background_color": "#0b2f52",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New sales voucher",
+      "short_name": "Sale",
+      "url": "/#/voucher/new?type=SALES",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Day book",
+      "short_name": "Day book",
+      "url": "/#/report/day-book"
+    },
+    {
+      "name": "Trial balance",
+      "short_name": "Trial balance",
+      "url": "/#/report/trial-balance"
+    }
+  ]
+}

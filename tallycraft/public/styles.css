@@ -1093,3 +1093,132 @@ kbd {
     padding: 0;
   }
 }
+
+/* ------------------------------------------------------------- web app shell */
+
+/*
+ * Installable-app affordances. The same shell runs as a browser tab, an
+ * installed window and a thumb-sized screen; only the chrome changes.
+ */
+
+.pill-action {
+  font-family: var(--sans);
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--brand-900);
+  border-color: transparent;
+}
+
+.pill-action:hover {
+  filter: brightness(1.04);
+}
+
+#net-status[data-state="offline"] {
+  background: #fdecea;
+  color: #8a1c10;
+  border-color: #f3c0ba;
+}
+
+#net-status[data-state="online"] {
+  background: rgba(120, 220, 170, 0.18);
+  color: #c6f2dd;
+  border-color: rgba(150, 230, 190, 0.4);
+}
+
+/* Installed window: no browser chrome, so reclaim the safe area. */
+@media (display-mode: standalone) {
+  .topbar {
+    padding-top: calc(10px + env(safe-area-inset-top));
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding-bottom: calc(58px + env(safe-area-inset-bottom));
+  }
+
+  /* Touch devices do not have F-keys; the key hints are noise. */
+  .keybar {
+    display: none;
+  }
+
+  .topbar {
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  .brand {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brand-text strong {
+    font-size: 15px;
+  }
+
+  .topbar-meta {
+    gap: 8px;
+  }
+
+  .topbar-meta .clock {
+    display: none;
+  }
+
+  /* Primary navigation becomes a thumb-reachable tab bar. */
+  .mainnav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    order: 0;
+    width: 100%;
+    gap: 0;
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 16px rgba(16, 38, 61, 0.09);
+    overflow: visible;
+  }
+
+  .mainnav button {
+    flex: 1;
+    min-height: 48px;
+    padding: 6px 2px;
+    border-radius: 8px;
+    color: var(--ink-soft);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+  }
+
+  .mainnav button:hover {
+    background: var(--brand-100);
+    color: var(--brand-800);
+  }
+
+  .mainnav button.active {
+    background: var(--brand-100);
+    border-color: var(--brand-100);
+    color: var(--brand-800);
+  }
+
+  .view {
+    padding: 14px 12px 24px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  /* Comfortable tap targets everywhere, per the 44px guidance. */
+  .button,
+  .link-button,
+  input,
+  select,
+  textarea {
+    min-height: 42px;
+  }
+}

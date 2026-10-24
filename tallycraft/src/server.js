@@ -8,7 +8,7 @@
 
 import { createServer as createHttpServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { basename, extname, join, normalize, resolve, sep } from "node:path";
 import { TallyCraft, TallyCraftError } from "./app.js";
 import {
   GST_RATES,
@@ -24,6 +24,8 @@ const MIME_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
   [".json", "application/json; charset=utf-8"],
+  [".webmanifest", "application/manifest+json; charset=utf-8"],
+  [".map", "application/json; charset=utf-8"],
   [".svg", "image/svg+xml"],
   [".png", "image/png"],
   [".ico", "image/x-icon"],
@@ -211,7 +213,13 @@ export function createAppServer({
       "content-type":
         MIME_TYPES.get(extname(filePath)) ?? "application/octet-stream",
       "content-length": body.length,
+      // A service worker or manifest served from a stale cache can pin an old
+      // shell forever, so everything stays revalidated.
       "cache-control": "no-cache",
+      // The worker controls the whole origin, not just its own directory.
+      ...(basename(filePath) === "sw.js"
+        ? { "service-worker-allowed": "/" }
+        : {}),
     });
     response.end(body);
   };

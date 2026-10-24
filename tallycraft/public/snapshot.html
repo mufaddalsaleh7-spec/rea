@@ -2,11 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>TallyCraft · Accounting workspace</title>
     <meta
       name="description"
       content="TallyCraft is a keyboard-first double-entry accounting workspace: vouchers, ledgers, trial balance, balance sheet, P&L, inventory and Tally XML interchange."
+    />
+    <meta name="theme-color" content="#0f4c81" />
+    <meta name="color-scheme" content="light" />
+    <meta name="application-name" content="TallyCraft" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="TallyCraft" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
     />
     <style>
       :root {
@@ -1105,11 +1118,136 @@
           padding: 0;
         }
       }
+
+      /* ------------------------------------------------------------- web app shell */
+
+      /*
+ * Installable-app affordances. The same shell runs as a browser tab, an
+ * installed window and a thumb-sized screen; only the chrome changes.
+ */
+
+      .pill-action {
+        font-family: var(--sans);
+        font-weight: 650;
+        letter-spacing: 0.2px;
+        cursor: pointer;
+        background: var(--accent);
+        color: var(--brand-900);
+        border-color: transparent;
+      }
+
+      .pill-action:hover {
+        filter: brightness(1.04);
+      }
+
+      #net-status[data-state="offline"] {
+        background: #fdecea;
+        color: #8a1c10;
+        border-color: #f3c0ba;
+      }
+
+      #net-status[data-state="online"] {
+        background: rgba(120, 220, 170, 0.18);
+        color: #c6f2dd;
+        border-color: rgba(150, 230, 190, 0.4);
+      }
+
+      /* Installed window: no browser chrome, so reclaim the safe area. */
+      @media (display-mode: standalone) {
+        .topbar {
+          padding-top: calc(10px + env(safe-area-inset-top));
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding-bottom: calc(58px + env(safe-area-inset-bottom));
+        }
+
+        /* Touch devices do not have F-keys; the key hints are noise. */
+        .keybar {
+          display: none;
+        }
+
+        .topbar {
+          gap: 10px;
+          padding: 10px 14px;
+        }
+
+        .brand {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .brand-text strong {
+          font-size: 15px;
+        }
+
+        .topbar-meta {
+          gap: 8px;
+        }
+
+        .topbar-meta .clock {
+          display: none;
+        }
+
+        /* Primary navigation becomes a thumb-reachable tab bar. */
+        .mainnav {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 40;
+          order: 0;
+          width: 100%;
+          gap: 0;
+          padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+          background: var(--panel);
+          border-top: 1px solid var(--line);
+          box-shadow: 0 -4px 16px rgba(16, 38, 61, 0.09);
+          overflow: visible;
+        }
+
+        .mainnav button {
+          flex: 1;
+          min-height: 48px;
+          padding: 6px 2px;
+          border-radius: 8px;
+          color: var(--ink-soft);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.1px;
+        }
+
+        .mainnav button:hover {
+          background: var(--brand-100);
+          color: var(--brand-800);
+        }
+
+        .mainnav button.active {
+          background: var(--brand-100);
+          border-color: var(--brand-100);
+          color: var(--brand-800);
+        }
+
+        .view {
+          padding: 14px 12px 24px;
+        }
+
+        .card {
+          padding: 14px;
+        }
+
+        /* Comfortable tap targets everywhere, per the 44px guidance. */
+        .button,
+        .link-button,
+        input,
+        select,
+        textarea {
+          min-height: 42px;
+        }
+      }
     </style>
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f4c81'/%3E%3Cpath d='M14 22h36M32 22v26' stroke='%23f2b705' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E"
-    />
   </head>
   <body>
     <div
@@ -5559,6 +5697,16 @@
           >offline copy</span
         >
         <span id="fy-label" class="pill">FY</span>
+        <span id="net-status" class="pill" data-state="online" hidden></span>
+        <button
+          id="install-app"
+          class="pill pill-action"
+          type="button"
+          hidden
+          title="Install TallyCraft as an app"
+        >
+          Install app
+        </button>
         <span class="clock" id="clock"></span>
       </div>
     </header>
@@ -8621,6 +8769,141 @@ POST /api/import/xml`,
             ),
           );
         }
+      }
+
+      /* -------------------------------------------------------------- web app shell */
+
+      /*
+       * Installable-app behaviour. None of this is required for the accounting
+       * screens to work; it is what turns the page into an app: an install button
+       * when the browser offers one, an honest connection pill, and a service
+       * worker that keeps the last known book readable when the network drops.
+       */
+
+      const installButton = document.getElementById("install-app");
+      const netStatus = document.getElementById("net-status");
+      let installPrompt = null;
+
+      if (installButton !== null) {
+        window.addEventListener("beforeinstallprompt", (event) => {
+          // Keep the browser's mini-infobar out of the way and offer our own,
+          // which sits in the header next to the company name.
+          event.preventDefault();
+          installPrompt = event;
+          installButton.hidden = false;
+        });
+
+        installButton.addEventListener("click", async () => {
+          if (installPrompt === null) {
+            notify(
+              "Use your browser menu → “Install app” / “Add to Home screen”.",
+              "info",
+            );
+            return;
+          }
+          installPrompt.prompt();
+          const choice = await installPrompt.userChoice.catch(() => null);
+          installPrompt = null;
+          installButton.hidden = true;
+          if (choice?.outcome === "accepted") {
+            notify(
+              "TallyCraft installed. Open it from your home screen.",
+              "ok",
+            );
+          }
+        });
+
+        window.addEventListener("appinstalled", () => {
+          installPrompt = null;
+          installButton.hidden = true;
+        });
+
+        const standalone =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone === true;
+        if (standalone) installButton.hidden = true;
+      }
+
+      /** Say it plainly when the browser has no network at all. */
+      function paintConnection() {
+        if (netStatus === null) return;
+        if (navigator.onLine) {
+          netStatus.hidden = true;
+          netStatus.textContent = "";
+          return;
+        }
+        netStatus.hidden = false;
+        netStatus.dataset.state = "offline";
+        netStatus.textContent = "offline";
+        netStatus.title =
+          "No network. Showing the last copy this app saved on this device.";
+      }
+
+      window.addEventListener("offline", () => {
+        paintConnection();
+        notify(
+          "You are offline. The last saved copy of the book stays readable.",
+          "error",
+        );
+      });
+
+      window.addEventListener("online", () => {
+        paintConnection();
+        notify("Back online.", "ok");
+        // Refresh whatever screen is open with live numbers.
+        render();
+      });
+
+      paintConnection();
+
+      /** Tell the operator that a newer shell is waiting, and let them take it. */
+      function announceUpdate(worker) {
+        notify("A new version of TallyCraft is ready.", "info", {
+          label: "Reload",
+          run: () => {
+            worker.postMessage("SKIP_WAITING");
+            location.reload();
+          },
+        });
+      }
+
+      if (
+        "serviceWorker" in navigator &&
+        window.__TALLYCRAFT_DATA__ === undefined &&
+        location.protocol.startsWith("http")
+      ) {
+        window.addEventListener("load", async () => {
+          try {
+            const registration = await navigator.serviceWorker.register(
+              "/sw.js",
+              {
+                scope: "/",
+              },
+            );
+            if (
+              registration.waiting !== null &&
+              navigator.serviceWorker.controller
+            ) {
+              announceUpdate(registration.waiting);
+            }
+            registration.addEventListener("updatefound", () => {
+              const worker = registration.installing;
+              if (worker === null) return;
+              worker.addEventListener("statechange", () => {
+                if (
+                  worker.state === "installed" &&
+                  navigator.serviceWorker.controller !== null
+                ) {
+                  announceUpdate(worker);
+                }
+              });
+            });
+          } catch (error) {
+            // No worker (private mode, unsupported browser, file://): the app is
+            // fully functional without offline caching.
+            console.warn("offline cache unavailable:", error.message);
+          }
+        });
       }
 
       boot();

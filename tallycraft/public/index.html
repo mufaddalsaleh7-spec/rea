@@ -2,17 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>TallyCraft · Accounting workspace</title>
     <meta
       name="description"
       content="TallyCraft is a keyboard-first double-entry accounting workspace: vouchers, ledgers, trial balance, balance sheet, P&L, inventory and Tally XML interchange."
     />
-    <link rel="stylesheet" href="/styles.css" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f4c81'/%3E%3Cpath d='M14 22h36M32 22v26' stroke='%23f2b705' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E"
+    <meta name="theme-color" content="#0f4c81" />
+    <meta name="color-scheme" content="light" />
+    <meta name="application-name" content="TallyCraft" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="TallyCraft" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
     />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32 16x16" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   </head>
   <body>
     <header class="topbar">
@@ -39,6 +52,16 @@
           >offline copy</span
         >
         <span id="fy-label" class="pill">FY</span>
+        <span id="net-status" class="pill" data-state="online" hidden></span>
+        <button
+          id="install-app"
+          class="pill pill-action"
+          type="button"
+          hidden
+          title="Install TallyCraft as an app"
+        >
+          Install app
+        </button>
         <span class="clock" id="clock"></span>
       </div>
     </header>

@@ -19,7 +19,8 @@
     "seed": "node --disable-warning=ExperimentalWarning bin/tallycraft.js seed",
     "export": "node --disable-warning=ExperimentalWarning bin/tallycraft.js export",
     "snapshot": "node scripts/snapshot.mjs",
-    "test": "node --disable-warning=ExperimentalWarning --test test/"
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "license": "MIT"
 }

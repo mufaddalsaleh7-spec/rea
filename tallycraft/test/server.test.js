@@ -289,3 +289,81 @@ test("an alias port reports itself in /api/instance", async () => {
   for (const alias of serverInstance.extraServers) alias.closeAllConnections();
   await new Promise((done) => serverInstance.close(done));
 });
+
+/* ------------------------------------------------------------------- web app */
+
+test("the shell advertises an installable manifest", async () => {
+  const html = await fetch(`${base}/`).then((response) => response.text());
+  assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/);
+  assert.match(html, /<meta name="theme-color" content="#0f4c81"/);
+  assert.match(
+    html,
+    /<link rel="apple-touch-icon" href="\/icons\/apple-touch-icon\.png"/,
+  );
+  assert.match(html, /id="install-app"/);
+});
+
+test("the manifest is valid and its icons exist", async () => {
+  const response = await fetch(`${base}/manifest.webmanifest`);
+  assert.equal(response.status, 200);
+  assert.equal(
+    response.headers.get("content-type"),
+    "application/manifest+json; charset=utf-8",
+  );
+  const manifest = await response.json();
+
+  assert.equal(manifest.name, "TallyCraft — Accounting Workspace");
+  assert.equal(manifest.short_name, "TallyCraft");
+  assert.equal(manifest.display, "standalone");
+  assert.equal(manifest.start_url, "/");
+  assert.equal(manifest.scope, "/");
+  assert.ok(manifest.icons.length >= 3);
+  assert.ok(
+    manifest.icons.some((icon) => icon.purpose === "maskable"),
+    "an installable icon needs a maskable variant",
+  );
+
+  for (const icon of manifest.icons) {
+    const asset = await fetch(`${base}${icon.src}`);
+    assert.equal(asset.status, 200, `${icon.src} is missing`);
+    assert.equal(
+      asset.headers.get("content-type"),
+      icon.type === "image/svg+xml" ? "image/svg+xml" : "image/png",
+    );
+    const bytes = Buffer.from(await asset.arrayBuffer());
+    assert.ok(bytes.length > 200, `${icon.src} looks empty`);
+  }
+
+  for (const shortcut of manifest.shortcuts) {
+    assert.match(shortcut.url, /^\/#\//, "shortcuts must deep-link the router");
+  }
+});
+
+test("the service worker is served from the root with a root scope", async () => {
+  const response = await fetch(`${base}/sw.js`);
+  assert.equal(response.status, 200);
+  assert.equal(
+    response.headers.get("content-type"),
+    "text/javascript; charset=utf-8",
+  );
+  assert.equal(response.headers.get("service-worker-allowed"), "/");
+  const source = await response.text();
+  assert.match(source, /addEventListener\("install"/);
+  assert.match(source, /addEventListener\("fetch"/);
+});
+
+test("every file the worker precaches is actually served", async () => {
+  const source = await fetch(`${base}/sw.js`).then((response) =>
+    response.text(),
+  );
+  const block = /const SHELL = \[([\s\S]*?)\];/.exec(source);
+  assert.ok(block, "SHELL list not found");
+  const paths = [...block[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+  assert.ok(paths.includes("/"), "the shell must include /");
+  assert.ok(paths.includes("/app.js"));
+
+  for (const path of paths) {
+    const response = await fetch(`${base}${path}`);
+    assert.equal(response.status, 200, `precached path ${path} is missing`);
+  }
+});

@@ -175,6 +175,9 @@ async function main() {
       '<link rel="stylesheet" href="/styles.css" />',
       `<style>${css}</style>`,
     )
+    // A single file has no server, so the manifest, icons and worker would
+    // only produce failed requests.
+    .replace(/^\s*<link rel="(manifest|icon|apple-touch-icon)"[^>]*\/>$/gm, "")
     .replace(
       "<body>",
       `<body>${banner}<script>window.__TALLYCRAFT_DATA__ = ${JSON.stringify(data).replaceAll("</", "<\\/")};</script>${CLIENT_SHIM}`,
