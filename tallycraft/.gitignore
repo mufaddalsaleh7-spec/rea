@@ -1,0 +1,8 @@
+# Local database (SQLite plus WAL sidecars)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Editor and OS noise
+.DS_Store

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TallyCraft · Accounting workspace</title>
+    <meta
+      name="description"
+      content="TallyCraft is a keyboard-first double-entry accounting workspace: vouchers, ledgers, trial balance, balance sheet, P&L, inventory and Tally XML interchange."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f4c81'/%3E%3Cpath d='M14 22h36M32 22v26' stroke='%23f2b705' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span class="brand-text">
+          <strong>TallyCraft</strong>
+          <small id="brand-company">Loading company…</small>
+        </span>
+      </div>
+      <nav class="mainnav" id="mainnav" aria-label="Primary">
+        <button data-nav="gateway" class="active">Gateway</button>
+        <button data-nav="masters">Masters</button>
+        <button data-nav="vouchers">Transactions</button>
+        <button data-nav="reports">Reports</button>
+        <button data-nav="data">Data</button>
+      </nav>
+      <div class="topbar-meta">
+        <span id="fy-label" class="pill">FY</span>
+        <span class="clock" id="clock"></span>
+      </div>
+    </header>
+
+    <div class="ticker" id="ticker" role="status" aria-live="polite">
+      <span class="ticker-dot"></span>
+      <span id="ticker-text">Connecting to the ledger…</span>
+      <button id="ticker-action" class="link-button" hidden></button>
+    </div>
+
+    <main id="view" class="view" tabindex="-1">
+      <div class="loading">Loading the ledger…</div>
+    </main>
+
+    <footer class="keybar" aria-label="Keyboard shortcuts">
+      <span class="keybar-label">Shortcuts</span>
+      <span><kbd>F4</kbd> Contra</span>
+      <span><kbd>F5</kbd> Payment</span>
+      <span><kbd>F6</kbd> Receipt</span>
+      <span><kbd>F7</kbd> Journal</span>
+      <span><kbd>F8</kbd> Sales</span>
+      <span><kbd>F9</kbd> Purchase</span>
+      <span><kbd>Alt</kbd>+<kbd>F1</kbd> Detailed</span>
+      <span><kbd>Ctrl</kbd>+<kbd>A</kbd> Accept</span>
+      <span><kbd>Esc</kbd> Back</span>
+      <span><kbd>?</kbd> Help</span>
+    </footer>
+
+    <div id="modal-root"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

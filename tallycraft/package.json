@@ -1,0 +1,21 @@
+{
+  "name": "tallycraft",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A double-entry accounting workspace modelled on Tally Prime: vouchers, ledgers, trial balance, balance sheet, P&L, inventory and Tally XML import/export.",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "bin": {
+    "tallycraft": "bin/tallycraft.js"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning bin/tallycraft.js serve --demo",
+    "serve": "node --disable-warning=ExperimentalWarning bin/tallycraft.js serve",
+    "seed": "node --disable-warning=ExperimentalWarning bin/tallycraft.js seed",
+    "export": "node --disable-warning=ExperimentalWarning bin/tallycraft.js export",
+    "test": "node --disable-warning=ExperimentalWarning --test test/"
+  },
+  "license": "MIT"
+}
