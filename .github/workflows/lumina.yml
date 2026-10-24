@@ -1,0 +1,66 @@
+name: lumina
+
+on:
+  push:
+    paths: ["lumina/**", ".github/workflows/lumina.yml"]
+  pull_request:
+    paths: ["lumina/**", ".github/workflows/lumina.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    name: desktop (C++17 / Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: build the compositor, shell and host runtime
+        working-directory: lumina
+        run: make -j"$(nproc)"
+      - name: core suite (134 checks)
+        working-directory: lumina
+        run: make test
+      - name: broker invariants (Rust/Python parity)
+        run: python3 lumina/tools/lumina/sysd.py --self-test
+      - name: python suites
+        run: python3 -m unittest discover -s lumina/tests -p 'test_*.py' -v
+      - name: still tour
+        working-directory: lumina
+        run: ./build/lumina --scenario tour --root .. --out out
+      - name: optimise stills
+        working-directory: lumina
+        run: python3 tools/lumina/optimize_png.py --all out assets
+      - name: upload stills
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumina-stills
+          path: lumina/assets/*.png
+          retention-days: 14
+      - name: agent pipeline (manifest must be true)
+        run: python3 lumina/agents/orchestrator.py --check
+      - name: release artifacts
+        run: python3 lumina/tools/lumina/lumctl.py release --check
+
+  kernel:
+    name: kernel (freestanding Rust)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-none
+      - name: build kernel image
+        run: bash lumina/kernel/build.sh
+      - name: check image
+        run: bash lumina/kernel/scripts/check-image.sh lumina/kernel/build/lumina-kernel.elf
+      - name: boot in qemu
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86
+          timeout 25 qemu-system-x86_64 -kernel lumina/kernel/build/lumina-kernel.elf \
+            -m 256M -serial stdio -display none > boot.log 2>&1 || true
+          cat boot.log
+          grep -q "syscall self-test" boot.log
+          grep -q "scheduler online" boot.log

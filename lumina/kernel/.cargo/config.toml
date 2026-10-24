@@ -1,0 +1,12 @@
+# Lumina kernel build configuration.
+# The kernel is fully freestanding: no std, no alloc crate, no external crates.
+[build]
+target = "x86_64-unknown-none"
+
+[target.x86_64-unknown-none]
+rustflags = [
+  "-C", "link-arg=-Tkernel/kernel.ld",
+  "-C", "link-arg=-nostdlib",
+  "-C", "relocation-model=static",
+  "-C", "code-model=kernel",
+]
