@@ -1,0 +1,291 @@
+{
+  "schema": "lumina.agents/1",
+  "product": "Lumina OS",
+  "version": "1.0.0",
+  "codename": "crystal",
+  "mission": "A native operating system that keeps what makes the Mac feel human and replaces what holds it back: an open, reproducible build pipeline, a verifiable syscall surface and one source of design truth.",
+  "languages": [
+    "C++",
+    "Rust",
+    "Python"
+  ],
+  "invariants": [
+    "Every layer is owned by exactly one agent.",
+    "Every build command is reproducible from this file alone.",
+    "No agent may use a capability the syscall broker does not expose.",
+    "A stage may not be marked ready unless its verification command passes.",
+    "Design tokens live in one file; no surface picks raw colours."
+  ],
+  "agents": [
+    {
+      "role": "kernel-architect",
+      "language": "Rust",
+      "target": "kernel",
+      "owns": "boot, long mode, physical frames, heap, preemptive scheduler",
+      "status": "ready",
+      "skills": [
+        "x86_64 boot",
+        "memory management",
+        "scheduling",
+        "unsafe audit"
+      ],
+      "outputs": [
+        "lumina/kernel/src/boot.rs",
+        "lumina/kernel/src/mem.rs",
+        "lumina/kernel/src/sched.rs"
+      ],
+      "capabilities": [
+        "mem.alloc",
+        "mem.free",
+        "proc.spawn",
+        "proc.yield",
+        "proc.exit"
+      ],
+      "commands": [
+        "bash lumina/kernel/build.sh"
+      ],
+      "requires": [
+        "cargo",
+        "rustup"
+      ]
+    },
+    {
+      "role": "graphics-engineer",
+      "language": "Rust",
+      "target": "kernel",
+      "owns": "framebuffer claim, boot console, present path",
+      "status": "ready",
+      "skills": [
+        "linear framebuffers",
+        "rasterisation",
+        "boot diagnostics"
+      ],
+      "outputs": [
+        "lumina/kernel/src/fb.rs",
+        "lumina/kernel/src/font.rs"
+      ],
+      "capabilities": [
+        "gfx.surface",
+        "gfx.present",
+        "gfx.blit"
+      ],
+      "commands": [
+        "bash lumina/kernel/build.sh"
+      ],
+      "requires": [
+        "cargo",
+        "rustup"
+      ]
+    },
+    {
+      "role": "compositor-engineer",
+      "language": "C++",
+      "target": "compositor",
+      "owns": "surface rasteriser, z-order, focus, glass, motion",
+      "status": "ready",
+      "skills": [
+        "software rasterisation",
+        "compositing",
+        "antialiasing",
+        "motion design"
+      ],
+      "outputs": [
+        "lumina/src/compositor/surface.cpp",
+        "lumina/src/compositor/compositor.cpp",
+        "lumina/src/compositor/theme.cpp"
+      ],
+      "capabilities": [
+        "gfx.surface",
+        "gfx.present",
+        "gfx.blit",
+        "time.read"
+      ],
+      "commands": [
+        "make -C lumina"
+      ],
+      "verify": [
+        "make -C lumina test"
+      ],
+      "requires": [
+        "make",
+        "g++"
+      ]
+    },
+    {
+      "role": "shell-designer",
+      "language": "C++",
+      "target": "lumina-host",
+      "owns": "menubar, dock, control centre, spotlight, workspaces, boot sequence",
+      "status": "ready",
+      "skills": [
+        "desktop interaction",
+        "visual systems",
+        "accessibility",
+        "input routing"
+      ],
+      "outputs": [
+        "lumina/src/shell/shell.cpp",
+        "lumina/host/main.cpp"
+      ],
+      "capabilities": [
+        "gfx.present",
+        "proc.spawn",
+        "proc.yield",
+        "time.read"
+      ],
+      "commands": [
+        "make -C lumina"
+      ],
+      "requires": [
+        "make",
+        "g++"
+      ]
+    },
+    {
+      "role": "syscall-architect",
+      "language": "Python",
+      "target": "syscalls",
+      "owns": "24-call surface, broker, policy, audit trail",
+      "status": "ready",
+      "skills": [
+        "capability design",
+        "policy enforcement",
+        "audit",
+        "cross-language parity"
+      ],
+      "outputs": [
+        "lumina/kernel/src/syscall.rs",
+        "lumina/tools/lumina/sysd.py"
+      ],
+      "capabilities": [
+        "fs.read",
+        "fs.write",
+        "mem.alloc",
+        "ipc.send",
+        "ipc.recv",
+        "proc.info"
+      ],
+      "commands": [
+        "python3 lumina/tools/lumina/sysd.py --self-test",
+        "python3 -m unittest discover -s lumina/tests -p 'test_*.py'"
+      ],
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "role": "app-builder",
+      "language": "C++",
+      "target": "compositor",
+      "owns": "Files, Terminal, Notes, Settings, Monitor, About, Build Studio",
+      "status": "ready",
+      "skills": [
+        "application design",
+        "keyboard-first UI",
+        "data binding"
+      ],
+      "outputs": [
+        "lumina/src/shell/apps.cpp",
+        "lumina/include/lumina/apps.hpp"
+      ],
+      "capabilities": [
+        "fs.read",
+        "fs.write",
+        "proc.info",
+        "agent.query",
+        "time.read"
+      ],
+      "commands": [
+        "make -C lumina"
+      ],
+      "requires": [
+        "make",
+        "g++"
+      ]
+    },
+    {
+      "role": "qa-engineer",
+      "language": "Python",
+      "target": "syscalls",
+      "owns": "unit tests, goldens, still-frame regression, CI gate",
+      "status": "ready",
+      "skills": [
+        "test design",
+        "golden images",
+        "property checks",
+        "regression triage"
+      ],
+      "outputs": [
+        "lumina/tests/test_core.cpp",
+        "lumina/tests/test_sysd.py"
+      ],
+      "capabilities": [
+        "fs.read",
+        "proc.info",
+        "time.read"
+      ],
+      "commands": [
+        "make -C lumina test",
+        "python3 -m unittest discover -s lumina/tests -p 'test_*.py'"
+      ],
+      "requires": [
+        "make",
+        "python3"
+      ]
+    },
+    {
+      "role": "security-reviewer",
+      "language": "Python",
+      "target": "lumina-host",
+      "owns": "threat model, syscall policy, capability review, secrets hygiene",
+      "status": "ready",
+      "skills": [
+        "threat modelling",
+        "sandboxing",
+        "least privilege"
+      ],
+      "outputs": [
+        "lumina/docs/security-model.md",
+        "lumina/docs/threat-model.md"
+      ],
+      "capabilities": [
+        "fs.read",
+        "proc.info"
+      ],
+      "commands": [
+        "python3 lumina/tools/lumina/sysd.py --describe"
+      ],
+      "requires": [
+        "python3"
+      ]
+    },
+    {
+      "role": "release-manager",
+      "language": "Python",
+      "target": "lumina-host",
+      "owns": "versioning, artifacts, changelog, reproducible releases",
+      "status": "ready",
+      "skills": [
+        "release engineering",
+        "artifact policy",
+        "documentation"
+      ],
+      "outputs": [
+        "lumina/CHANGELOG.md",
+        "lumina/tools/lumina/lumctl.py"
+      ],
+      "capabilities": [
+        "fs.read",
+        "fs.write",
+        "proc.info",
+        "time.read"
+      ],
+      "commands": [
+        "python3 lumina/tools/lumina/lumctl.py status"
+      ],
+      "requires": [
+        "python3"
+      ]
+    }
+  ]
+}

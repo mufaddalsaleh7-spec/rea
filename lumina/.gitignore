@@ -1,0 +1,19 @@
+# Host build output
+build/
+out/
+
+# Rust kernel build output
+kernel/target/
+kernel/bootloader/target/
+kernel/app/target/
+kernel/build/
+
+# Python
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+
+# Editors
+.DS_Store
+*.swp

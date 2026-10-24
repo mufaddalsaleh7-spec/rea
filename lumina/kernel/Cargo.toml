@@ -1,0 +1,25 @@
+[package]
+name = "lumina-kernel"
+version = "1.0.0"
+edition = "2021"
+description = "Lumina OS kernel: x86_64 long-mode bring-up, memory, scheduling, syscall gate"
+license = "MIT"
+
+[[bin]]
+name = "lumina-kernel"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+
+[profile.dev]
+panic = "abort"
+opt-level = 1
+
+[profile.release]
+panic = "abort"
+opt-level = 2
+lto = true
+codegen-units = 1
+debug = true
