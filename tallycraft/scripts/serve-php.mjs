@@ -13,7 +13,7 @@
  *
  * Routes:
  *   /api/*, /healthz   → PHP router (php-wasm)
- *   /app, /app/*       → public/react (the React build)
+ *   /, /app, /app/*    → public/react (the React build)
  *   everything else    → public/ (icons, manifest, the legacy client)
  */
 
@@ -158,9 +158,11 @@ async function handler(request, response) {
     return;
   }
 
-  if (path === "/" || path === "/app") {
-    response.writeHead(302, { location: "/app/" });
-    response.end();
+  // The root is the app: a preview URL should never need a redirect to be
+  // useful, and hash routes are origin-relative anyway.
+  if (path === "/" || path === "/app" || path === "/app/") {
+    if (await serveFile(response, join(reactDir, "index.html"))) return;
+    send(response, 404, "React build missing. Run: npm run build:react");
     return;
   }
 

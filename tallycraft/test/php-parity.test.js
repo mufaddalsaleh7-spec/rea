@@ -583,7 +583,8 @@ describe("the production front controller serves the whole app", { skip: !phpAva
     { method: "GET", path: "/api/export/xml", query: { vouchers: "false", masters: "false" } },
     { method: "GET", path: "/api/nothing" },
     { method: "GET", path: "/app/index.html" },
-    { method: "GET", path: "/snapshot.html" },
+    { method: "GET", path: "/" },
+    { method: "GET", path: "/manifest.webmanifest" },
   ];
   let answers;
 
@@ -603,10 +604,11 @@ describe("the production front controller serves the whole app", { skip: !phpAva
     assert.equal(JSON.parse(answers[3].text).error.code, "NOT_FOUND");
   });
 
-  test("it serves the React shell and the offline snapshot", () => {
-    assert.match(answers[4].text, /<div id="root"><\/div>/);
-    assert.match(answers[4].text, /\.\/assets\/app\.js/);
-    assert.match(answers[5].text, /TallyCraft/);
-    assert.ok(answers[5].text.length > 10_000, "the snapshot is a whole document");
+  test("it serves the React shell at both / and /app/", () => {
+    for (const index of [4, 5]) {
+      assert.match(answers[index].text, /<div id="root"><\/div>/);
+      assert.match(answers[index].text, /\/app\/assets\/app\.js/);
+    }
+    assert.match(answers[6].text, /TallyCraft/);
   });
 });

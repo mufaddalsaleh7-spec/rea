@@ -50,13 +50,18 @@ $serveFile = static function (string $file): bool {
 
 // A booked company is the reason to open the app; seed on first request so a
 // fresh container is not an empty screen.
+$webRoot = $bootstrap->config['webDir'];
 if ($method === 'GET' && ($path === '/' || $path === '/app' || $path === '/app/')) {
     $companies = (int) $bootstrap->db->query('SELECT COUNT(*) FROM companies')->fetchColumn();
     if ($companies === 0) {
         (new Seed($bootstrap->db, (string) $bootstrap->config['seedPath'], $bootstrap->catalog))->load();
     }
-    header('location: /app/');
-    http_response_code(302);
+    $shell = realpath($webRoot . '/react/index.html');
+    if ($shell !== false && $serveFile($shell)) {
+        exit;
+    }
+    http_response_code(500);
+    echo 'React build missing. Run: npm run build:react';
     exit;
 }
 
@@ -89,7 +94,6 @@ if (str_starts_with($path, '/api/') || $path === '/healthz') {
 }
 
 // The React build.
-$webRoot = $bootstrap->config['webDir'];
 if (str_starts_with($path, '/app')) {
     $relative = ltrim(substr($path, strlen('/app')), '/');
     if ($relative === '') {

@@ -5,7 +5,7 @@ TallyCraft now ships in two runtimes that answer the same requests:
 | Build | Client | Server | Purpose |
 | ----- | ------ | ------ | ------- |
 | Node (original) | `public/app.js` (vanilla ESM) | `src/server.js` on `node:sqlite` | parity reference, CLI, offline snapshot |
-| **PHP + React (this document)** | `web/` → `public/react/` | `api-php/` on `pdo_sqlite` | the deployable web app |
+| **PHP + React (this document)** | `web/` → `public/react/` | `api-php/` on `pdo_sqlite` | the deployable web app, served at `/` |
 
 Both read the same SQLite schema, expose the same `/api/*` contract, and are
 proven identical by `test/php-parity.test.js`.
@@ -44,7 +44,7 @@ api-php/
 ```bash
 npm run build:react                                   # once, or after editing web/
 php -S 0.0.0.0:8080 -t api-php/public api-php/public/index.php
-# open http://localhost:8080/            → redirects to /app/
+# open http://localhost:8080/            → the React app (also /app/)
 ```
 
 Requirements: PHP 8.2+ with `pdo_sqlite` and `sqlite3`. No Composer, no

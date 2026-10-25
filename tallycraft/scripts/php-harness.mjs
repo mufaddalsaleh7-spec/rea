@@ -124,7 +124,12 @@ export async function openPhpSession({ dbPath = null, seed = false, includeWeb =
     queue = queue.then(async () => {
       php.writeFile("/tmp/front.json", JSON.stringify(request));
       const out = await php.run({ scriptPath: `${BASE}/tests/front.php` });
-      return { text: out.text ?? "", exitCode: out.exitCode, errors: out.errors ?? "" };
+      return {
+        text: out.text ?? "",
+        bytes: Buffer.byteLength(out.text ?? "", "utf8"),
+        exitCode: out.exitCode,
+        errors: out.errors ?? "",
+      };
     });
     return queue;
   };
