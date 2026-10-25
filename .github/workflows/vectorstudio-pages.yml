@@ -1,9 +1,12 @@
 name: VectorStudio Pages
 
-# Publishes the single-file VectorStudio edition to GitHub Pages so the
-# workspace has a stable URL that does not depend on any sandbox or preview
-# process. Enable once: Settings -> Pages -> Build and deployment ->
-# Source: "GitHub Actions".
+# Publishes both VectorStudio editions to GitHub Pages:
+#   /                     landing page (this repository's index.html)
+#   /vectorstudio.html    single-file classic editor (works offline)
+#   /app/                 React + PHP web workspace bundle (static front end;
+#                         its PHP API is served separately, see the app README)
+#
+# Enable once: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
 
 on:
   push:
@@ -12,6 +15,7 @@ on:
     paths:
       - vectorstudio.html
       - index.html
+      - apps/vectorstudio-web/**
       - .github/workflows/vectorstudio-pages.yml
   workflow_dispatch:
 
@@ -32,15 +36,24 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Build the React workspace
+        working-directory: apps/vectorstudio-web
+        run: |
+          set -eu
+          npm ci --no-audit --no-fund
+          npm run build
+
       - name: Assemble static site
         run: |
           set -eu
           test -f vectorstudio.html
           test -f index.html
-          mkdir -p _site
+          test -f apps/vectorstudio-web/dist/index.html
+          mkdir -p _site/app
           cp index.html vectorstudio.html _site/
+          cp -r apps/vectorstudio-web/dist/. _site/app/
           printf 'User-agent: *\nAllow: /\n' > _site/robots.txt
-          ls -l _site
+          ls -la _site _site/app
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
