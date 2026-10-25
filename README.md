@@ -329,6 +329,25 @@ with your REA version, target type, steps to reproduce and error output.
 
 </details>
 
+## ReaOS desktop platform (separate module)
+
+This repository also contains **ReaOS**, an independent desktop platform that
+lives in [`platform/`](platform/README.md) and is unrelated to REA's
+reverse-engineering features. It owns its own filesystem namespace, capability
+model, system services, desktop shell and built-in applications, and runs on the
+host kernel.
+
+```bash
+cd platform && node src/main.ts --port 4173
+```
+
+ReaOS is not affiliated with Apple Inc. Start with
+[the platform README](platform/README.md), then
+[the repository audit](docs/REPOSITORY_AUDIT.md),
+[the architecture](docs/ARCHITECTURE.md),
+[the feature status matrix](docs/FEATURE_STATUS.md) and
+[the roadmap](docs/ROADMAP.md).
+
 ## Documentation
 
 Start with the website's [worked guides](https://rea.tools/guides/).

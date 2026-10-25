@@ -1,0 +1,18 @@
+{
+  "name": "@rea/platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ReaOS platform: system services, desktop shell and built-in applications for the REA macOS-alternative project.",
+  "license": "MIT",
+  "engines": {
+    "node": "^22.19.0 || ^24.11.0 || >=26.0.0"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "dev": "node --watch src/main.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --config vitest.config.ts",
+    "smoke": "node tools/shell-smoke.mjs"
+  }
+}

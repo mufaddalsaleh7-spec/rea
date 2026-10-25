@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-accent="aurora" data-wallpaper="dawn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ReaOS</title>
+    <meta name="description" content="ReaOS — an independent desktop platform built on the REA repository." />
+    <link rel="icon" href="/assets/reaos-mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles/tokens.css" />
+    <link rel="stylesheet" href="/styles/shell.css" />
+    <link rel="stylesheet" href="/styles/apps.css" />
+  </head>
+  <body>
+    <div id="wallpaper" class="wallpaper" aria-hidden="true"></div>
+    <div id="desktop" class="desktop">
+      <div id="desktop-icons" class="desktop-icons" aria-label="Desktop items"></div>
+
+      <header id="menubar" class="menubar" role="banner">
+        <div class="menubar-left">
+          <button id="system-menu-button" class="menubar-logo" aria-haspopup="true" aria-expanded="false" title="ReaOS menu">
+            <img src="/assets/reaos-mark.svg" alt="" width="16" height="16" />
+            <span class="logo-word">ReaOS</span>
+          </button>
+          <nav id="app-menu" class="menubar-menus" aria-label="Application menu"></nav>
+        </div>
+        <div class="menubar-right">
+          <button id="status-terminal" class="status-chip" title="Terminal capability" aria-live="polite">shell off</button>
+          <button id="status-cpu" class="status-chip" title="Open Activity monitor">CPU —</button>
+          <button id="status-notifications" class="status-bell" aria-haspopup="true" aria-expanded="false" title="Notifications" aria-label="Notifications">
+            <span class="bell-glyph" aria-hidden="true">◔</span>
+            <span id="notification-count" class="bell-count" hidden>0</span>
+          </button>
+          <button id="status-clock" class="status-clock" title="Date and time"></button>
+        </div>
+      </header>
+
+      <main id="windows" class="windows" role="main" aria-label="Open windows"></main>
+
+      <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+
+      <div id="launcher" class="launcher" hidden>
+        <div class="launcher-panel" role="dialog" aria-modal="true" aria-label="Launcher">
+          <div class="launcher-input-row">
+            <span class="launcher-glyph" aria-hidden="true">⌕</span>
+            <input id="launcher-input" class="launcher-input" type="text" placeholder="Search applications and files" autocomplete="off" spellcheck="false" />
+            <kbd>esc</kbd>
+          </div>
+          <div id="launcher-results" class="launcher-results" role="listbox" aria-label="Search results"></div>
+          <div class="launcher-hint"><span>↑↓ to choose</span><span>⏎ to open</span><span>ctrl+space to toggle</span></div>
+        </div>
+      </div>
+
+      <div id="panel" class="panel" hidden></div>
+
+      <nav id="dock" class="dock" aria-label="Dock"></nav>
+
+      <div id="context-menu" class="context-menu" hidden role="menu"></div>
+    </div>
+
+    <div id="boot-overlay" class="boot-overlay">
+      <img src="/assets/reaos-mark.svg" alt="" width="56" height="56" />
+      <p class="boot-title">ReaOS</p>
+      <p id="boot-message" class="boot-message">Starting platform services…</p>
+    </div>
+
+    <script type="module" src="/js/main.js"></script>
+  </body>
+</html>

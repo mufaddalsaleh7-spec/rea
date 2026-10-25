@@ -1,0 +1,184 @@
+/*
+ * ReaOS design tokens.
+ *
+ * Every colour, radius, shadow and motion value the shell uses lives here. The
+ * desktop sets data-theme / data-accent / data-wallpaper on <html> and these
+ * variables re-resolve, so appearance changes are instant and global.
+ */
+
+:root {
+  --font-ui: "Inter", "SF Pro Text", "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, "Cascadia Mono", monospace;
+
+  --text-xs: 11px;
+  --text-sm: 12.5px;
+  --text-md: 14px;
+  --text-lg: 17px;
+  --text-xl: 22px;
+  --text-hero: 34px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 340ms;
+  --ease-out: cubic-bezier(0.22, 0.68, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --dock-size: 56px;
+  --menubar-height: 30px;
+  --dock-inset: 14px;
+  --window-titlebar: 40px;
+
+  --accent: #5fd7c0;
+  --accent-strong: #2fbfa6;
+  --accent-soft: rgba(95, 215, 192, 0.18);
+  --accent-contrast: #04140f;
+  --accent-2: #7aa2ff;
+  --danger: #ff6f7d;
+  --warning: #ffc46b;
+  --success: #6ee7a8;
+}
+
+html[data-theme="dark"] {
+  --canvas: #06070d;
+  --surface: rgba(21, 24, 36, 0.78);
+  --surface-solid: #14161f;
+  --surface-raised: rgba(31, 35, 50, 0.92);
+  --surface-sunken: rgba(9, 11, 18, 0.72);
+  --hairline: rgba(255, 255, 255, 0.1);
+  --hairline-strong: rgba(255, 255, 255, 0.18);
+  --text-primary: #f2f4fb;
+  --text-secondary: #a8b0c6;
+  --text-tertiary: #6f7891;
+  --text-inverse: #0a0c12;
+  --selection: rgba(95, 215, 192, 0.28);
+  --shadow-window: 0 30px 70px rgba(0, 0, 0, 0.55), 0 2px 0 rgba(255, 255, 255, 0.04) inset;
+  --shadow-popover: 0 22px 50px rgba(0, 0, 0, 0.5);
+  --glass-blur: 22px;
+  --scrollbar: rgba(255, 255, 255, 0.16);
+}
+
+html[data-theme="light"] {
+  --canvas: #eef1f7;
+  --surface: rgba(253, 254, 255, 0.82);
+  --surface-solid: #ffffff;
+  --surface-raised: rgba(255, 255, 255, 0.96);
+  --surface-sunken: rgba(238, 241, 247, 0.85);
+  --hairline: rgba(16, 24, 40, 0.1);
+  --hairline-strong: rgba(16, 24, 40, 0.18);
+  --text-primary: #12151f;
+  --text-secondary: #4c5468;
+  --text-tertiary: #7b8397;
+  --text-inverse: #ffffff;
+  --selection: rgba(58, 150, 255, 0.2);
+  --shadow-window: 0 24px 60px rgba(22, 30, 50, 0.2), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  --shadow-popover: 0 18px 40px rgba(22, 30, 50, 0.18);
+  --glass-blur: 20px;
+  --scrollbar: rgba(16, 24, 40, 0.2);
+}
+
+html[data-accent="aurora"] {
+  --accent: #5fd7c0;
+  --accent-strong: #2fbfa6;
+  --accent-soft: rgba(95, 215, 192, 0.18);
+  --accent-contrast: #04140f;
+  --accent-2: #7aa2ff;
+}
+
+html[data-accent="ember"] {
+  --accent: #ffb347;
+  --accent-strong: #f08f2b;
+  --accent-soft: rgba(255, 179, 71, 0.2);
+  --accent-contrast: #1c1103;
+  --accent-2: #ff7a59;
+}
+
+html[data-accent="tide"] {
+  --accent: #58b4ff;
+  --accent-strong: #2f8fe6;
+  --accent-soft: rgba(88, 180, 255, 0.2);
+  --accent-contrast: #00121f;
+  --accent-2: #66e0d0;
+}
+
+html[data-accent="violet"] {
+  --accent: #b18cff;
+  --accent-strong: #8f63f0;
+  --accent-soft: rgba(177, 140, 255, 0.2);
+  --accent-contrast: #120a24;
+  --accent-2: #ff8fd6;
+}
+
+html[data-accent="graphite"] {
+  --accent: #c3cbd9;
+  --accent-strong: #98a3b8;
+  --accent-soft: rgba(195, 203, 217, 0.18);
+  --accent-contrast: #0b0d12;
+  --accent-2: #8aa0c0;
+}
+
+/* Wallpapers are original layered gradients; no third-party artwork is used. */
+html[data-wallpaper="dawn"] .wallpaper {
+  background:
+    radial-gradient(120% 80% at 12% 8%, rgba(95, 215, 192, 0.32), transparent 58%),
+    radial-gradient(110% 75% at 88% 12%, rgba(122, 162, 255, 0.34), transparent 60%),
+    radial-gradient(140% 110% at 50% 110%, rgba(139, 108, 255, 0.34), transparent 62%),
+    linear-gradient(155deg, #0a1020 0%, #101528 45%, #070910 100%);
+}
+
+html[data-wallpaper="dusk"] .wallpaper {
+  background:
+    radial-gradient(110% 70% at 80% 0%, rgba(255, 122, 89, 0.3), transparent 55%),
+    radial-gradient(120% 90% at 10% 20%, rgba(255, 179, 71, 0.18), transparent 60%),
+    radial-gradient(120% 100% at 50% 110%, rgba(90, 60, 140, 0.4), transparent 65%),
+    linear-gradient(160deg, #170f1c 0%, #1b1327 40%, #08060d 100%);
+}
+
+html[data-wallpaper="forest"] .wallpaper {
+  background:
+    radial-gradient(110% 80% at 20% 10%, rgba(110, 231, 168, 0.24), transparent 60%),
+    radial-gradient(100% 70% at 85% 30%, rgba(88, 180, 255, 0.18), transparent 62%),
+    linear-gradient(150deg, #07120f 0%, #0b1a18 50%, #050a09 100%);
+}
+
+html[data-wallpaper="slate"] .wallpaper {
+  background:
+    radial-gradient(120% 90% at 70% 10%, rgba(195, 203, 217, 0.16), transparent 60%),
+    radial-gradient(100% 80% at 10% 80%, rgba(122, 162, 255, 0.14), transparent 60%),
+    linear-gradient(160deg, #0d1017 0%, #151922 50%, #080a0e 100%);
+}
+
+html[data-wallpaper="paper"] .wallpaper {
+  background:
+    radial-gradient(120% 80% at 20% 0%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(120% 90% at 90% 20%, rgba(255, 214, 179, 0.5), transparent 62%),
+    linear-gradient(155deg, #f4f1ea 0%, #ece7df 55%, #e3ded6 100%);
+}
+
+html[data-theme="light"][data-wallpaper="paper"] {
+  --canvas: #e9e5dd;
+}
+
+html[data-reduced-motion="true"] * {
+  animation-duration: 1ms !important;
+  transition-duration: 1ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
