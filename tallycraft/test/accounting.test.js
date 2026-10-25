@@ -82,6 +82,57 @@ test("balance sheet balances and agrees with the P&L", () => {
   app.close();
 });
 
+test("a balance sheet heading reports the same rupees as the ledgers under it", () => {
+  const app = seeded();
+  const sheet = app.balanceSheet({ asOf: "2027-03-31" });
+
+  for (const section of ["liabilities", "assets"]) {
+    for (const row of sheet[section]) {
+      // `signed` carries the Dr/Cr direction; a heading is the net of its
+      // ledgers, not the sum of their magnitudes (a tax group can hold both a
+      // debit and a credit balance).
+      const signed = [
+        ...row.ledgers.map((ledger) => ledger.signed),
+        ...row.groups.flatMap((group) =>
+          group.ledgers.map((ledger) => ledger.signed),
+        ),
+      ];
+      if (signed.length === 0) continue;
+      assert.equal(
+        Math.abs(row.signed),
+        Math.abs(signed.reduce((total, amount) => total + amount, 0)),
+        `${section} heading ${row.name} disagrees with its ledgers`,
+      );
+      assert.equal(
+        Math.abs(row.amount),
+        Math.abs(row.signed),
+        `${section} heading ${row.name} must be in rupees, not paise`,
+      );
+    }
+  }
+
+  const shareCapital = sheet.liabilities.find((row) => row.name === "Capital Account");
+  assert.equal(shareCapital.amount, 2439500, "the heading is not divided by 100 twice");
+  app.close();
+});
+
+test("a ledger statement totals the rows it prints", () => {
+  const app = seeded();
+  for (const ledger of app.listLedgers({ limit: 100 })) {
+    const statement = app.ledgerReport({ ledgerId: ledger.id });
+    const sum = (key) =>
+      statement.entries.reduce((total, entry) => total + entry[key], 0);
+    assert.equal(statement.totals.debit, sum("debit"), `${ledger.name} debit total`);
+    assert.equal(statement.totals.credit, sum("credit"), `${ledger.name} credit total`);
+    assert.equal(
+      statement.closing,
+      statement.opening + statement.totals.debit - statement.totals.credit,
+      `${ledger.name} closing balance`,
+    );
+  }
+  app.close();
+});
+
 test("every voucher is balanced and trial balance holds on any date", () => {
   const app = seeded();
   for (const voucher of app.listVouchers({ limit: 500 })) {

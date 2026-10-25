@@ -13,6 +13,23 @@ npm run up        # repair whatever drifted, then serve under supervision
 
 Then open the preview from the chat's LIVE PREVIEW card — never a saved URL.
 
+### Two servers, two ports
+
+| Build | Command | Port | Notes |
+| ----- | ------- | ---- | ----- |
+| Node (reference, unchanged) | `npm run up` | 3000 (+ aliases) | supervised, static snapshot, offline shell |
+| **React + PHP** | `npm run php:serve` | 8080 (+ `TALLYCRAFT_ALIASES`) | preview bridge running the real PHP through php-wasm |
+
+The PHP preview needs `public/react/` to exist — `npm run build:react` writes it,
+and the bundle is committed, so a fresh checkout already has it. If the page
+loads but the sidebar shows "Backend unreachable", the bridge failed to boot PHP;
+check the process log for `PHP ready · database …`. Restarting the process reseeds
+a corrupted in-memory book, because the bridge seeds on boot.
+
+Deployments do not use the bridge: they run `php -S … api-php/public/index.php`
+(or FPM behind nginx) and keep the book on a persistent volume. See
+[PHP-REACT.md](PHP-REACT.md).
+
 ## The failure model
 
 The host is an ephemeral sandbox. Four independent failure modes exist, and only

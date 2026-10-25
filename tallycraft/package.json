@@ -13,21 +13,38 @@
   "scripts": {
     "backup": "node scripts/backup.mjs",
     "bootstrap": "node scripts/bootstrap.mjs",
+    "build:react": "node scripts/build-react.mjs",
     "build:static": "node scripts/build-static.mjs",
     "check": "node scripts/bootstrap.mjs --check",
     "docker:build": "docker build -t tallycraft:1.0.0 .",
     "docker:logs": "docker compose logs -f --tail 100",
+    "docker:php:build": "docker build -f Dockerfile.php -t tallycraft-php:1.0.0 .",
+    "docker:php:down": "docker compose -f compose.php.yml down",
+    "docker:php:up": "docker compose -f compose.php.yml up -d --build",
     "docker:up": "docker compose up -d --build",
     "export": "node --disable-warning=ExperimentalWarning bin/tallycraft.js export",
+    "export:php": "node --disable-warning=ExperimentalWarning scripts/export-php-data.mjs",
     "health": "node scripts/healthcheck.mjs",
     "icons": "node scripts/generate-icons.mjs",
+    "php:serve": "node scripts/serve-php.mjs --port 8080",
+    "php:test": "node --disable-warning=ExperimentalWarning --test test/php-parity.test.js",
     "preview": "node scripts/serve.mjs --port 3000 --demo",
     "restore": "node scripts/restore.mjs",
     "seed": "node --disable-warning=ExperimentalWarning bin/tallycraft.js seed",
     "snapshot": "node scripts/snapshot.mjs",
     "start": "node scripts/serve.mjs --port 3000 --demo",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
-    "up": "node scripts/bootstrap.mjs --serve"
+    "up": "node scripts/bootstrap.mjs --serve",
+    "web": "node scripts/serve-php.mjs --port 8080"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@php-wasm/node": "^3.1.60",
+    "esbuild": "^0.25.12",
+    "jsdom": "^26.1.0"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
 }

@@ -1,0 +1,22 @@
+# PHP + React stack, alongside the original Node compose file.
+#
+#   docker compose -f compose.php.yml up --build
+#   open http://localhost:8080/app/
+
+services:
+  tallycraft-php:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    image: tallycraft-php:1.0.0
+    ports:
+      - "8080:8080"
+    environment:
+      TALLYCRAFT_DB: /data/tallycraft.db
+      TALLYCRAFT_RELEASE: php-1.0.0
+    volumes:
+      - tallycraft-php-data:/data
+    restart: unless-stopped
+
+volumes:
+  tallycraft-php-data:

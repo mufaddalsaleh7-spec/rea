@@ -1116,14 +1116,17 @@ export class TallyCraft {
       .reduce((sum, ledger) => sum + ledger.balancePaise, 0);
     const closingStockPaise = this.#stockRows(date).totalPaise;
 
+    // `signed` is already in rupees, so negate it directly: passing it through
+    // moneyNumber would divide by 100 a second time and shrink every liability
+    // heading to one percent of its real value.
     const liabilities = this.#sectionRows(liabilityRoots, () => true).map(
       (row) => ({
         ...row,
-        amount: moneyNumber(-row.signed),
+        amount: -row.signed,
       }),
     );
     for (const row of this.#sectionRows(reserveRoots, () => true)) {
-      liabilities.push({ ...row, amount: moneyNumber(-row.signed) });
+      liabilities.push({ ...row, amount: -row.signed });
     }
     const assets = this.#applyClosingStock(
       this.#sectionRows(assetRoots, () => true),
@@ -1353,9 +1356,15 @@ export class TallyCraft {
       end,
     );
     let running = openingPaise;
+    // Totals accumulate paise, never the rupee figures rendered in each row:
+    // moneyNumber() on an already-converted value would divide by 100 again.
+    let debitTotalPaise = 0;
+    let creditTotalPaise = 0;
     const entries = rows.map((row) => {
       const amount = Number(row.amount_paise);
       running += amount;
+      if (amount > 0) debitTotalPaise += amount;
+      else creditTotalPaise -= amount;
       const others = all(
         this.db,
         `SELECT l.name FROM voucher_lines vl JOIN ledgers l ON l.id = vl.ledger_id
@@ -1384,12 +1393,8 @@ export class TallyCraft {
       openingType: openingPaise >= 0 ? "Dr" : "Cr",
       entries,
       totals: {
-        debit: moneyNumber(
-          entries.reduce((sum, entry) => sum + entry.debit, 0),
-        ),
-        credit: moneyNumber(
-          entries.reduce((sum, entry) => sum + entry.credit, 0),
-        ),
+        debit: moneyNumber(debitTotalPaise),
+        credit: moneyNumber(creditTotalPaise),
       },
       closing: moneyNumber(running),
       closingType: running >= 0 ? "Dr" : "Cr",

@@ -5,13 +5,26 @@ alternative to Tally Prime: masters, vouchers, trial balance, balance sheet,
 profit & loss, ledger statements, outstanding with ageing, inventory, GST
 summary, and Tally XML interchange.
 
-Runs on Node.js alone — no runtime dependencies, no external database server.
-The ledger lives in SQLite through Node's built-in `node:sqlite`.
+Two runtimes, one contract: a **React client with a PHP backend** is the
+deployable web app, and the original zero-dependency **Node** build stays as the
+reference implementation and CLI. Both speak the same `/api/*` JSON, read the
+same SQLite schema, and are proven identical by the parity test suite.
+
+The ledger lives in one SQLite file — no database server, no Composer, no build
+step at deploy time (the React bundle is committed).
 
 ```bash
 cd tallycraft
-npm run up         # bootstrap + supervised preview on http://localhost:3000
-npm test           # 39 tests: accounting, import/export, snapshot, supervisor, HTTP
+npm run build:react && npm run php:serve   # React + PHP on http://localhost:8080/app/
+npm run up                                  # original Node build on http://localhost:3000
+npm test                                    # 104 tests, including Node ↔ PHP parity
+```
+
+PHP on a real host (no Node needed):
+
+```bash
+php -S 0.0.0.0:8080 -t api-php/public api-php/public/index.php
+# → http://localhost:8080/app/     requirements: PHP 8.2+, pdo_sqlite
 ```
 
 ```
@@ -59,12 +72,37 @@ TDS, e-invoicing, bank reconciliation, multi-user security, and the Windows-only
 interfaces (ODBC, TDL, `.900`/`.tsf` native data files). See
 [docs/DESIGN.md](docs/DESIGN.md#known-limitations).
 
+## Two builds
+
+| Build | Client | Backend | Where |
+| ----- | ------ | ------- | ----- |
+| **React + PHP** | `web/` → `public/react/` | `api-php/` (`pdo_sqlite`) | `/app/` — the deployable web app |
+| Node reference | `public/app.js` | `src/` (`node:sqlite`) | `/` and `/static/` — CLI, offline snapshot, parity baseline |
+
+Everything in the table above exists in both builds. `test/php-parity.test.js`
+sends the same requests to both and requires identical status codes, payloads
+and byte-for-byte JSON, including writes, XML import/export and a book seeded by
+PHP alone. Porting also uncovered two 100× money bugs in the Node reports
+(balance-sheet headings and ledger-statement totals); both are fixed and
+regression-tested.
+
+Read [docs/PHP-REACT.md](docs/PHP-REACT.md) for the layout, the deployment
+story, and how to regenerate the PHP data with `npm run export:php`.
+
 ## Quick start
 
 ```bash
 node bin/tallycraft.js serve --demo --port 4310   # demo book, live reload not needed
 node bin/tallycraft.js serve                      # empty book at ./data/tallycraft.db
 node bin/tallycraft.js seed                       # load the demo company
+```
+
+The React + PHP build:
+
+```bash
+npm run build:react                          # rebuild public/react (committed)
+npm run php:serve                            # preview bridge on :8080 → /app/
+php -S 0.0.0.0:8080 -t api-php/public api-php/public/index.php   # real PHP
 ```
 
 Environment:
@@ -289,9 +327,23 @@ tallycraft/
   public/sw.js           service worker: offline shell and cached reads
   public/icons/          generated PNG icons, maskable and apple-touch
   test/                  accounting invariants, HTTP boundary, deploy contract
+  test/php-parity.test.js  Node ↔ PHP: routes, writes, XML, PHP-side seed
+  test/react.test.js       the built React bundle rendered in jsdom
   docs/                  reconstruction evidence, design notes, deploy guide
+  web/                   React sources: pages, router, api, styles (JSX)
+  public/react/          committed React build served at /app/
+  api-php/public/index.php  PHP front controller (/api/*, /healthz, /app/)
+  api-php/src/           Bootstrap, Router, TallyCraft, Catalog, Money, Xml
+  api-php/data/          generated catalog.json + seed.json (npm run export:php)
+  api-php/tests/runner.php  request-list driver used by the parity tests
+  scripts/build-react.mjs   one esbuild pass → public/react (no Vite)
+  scripts/serve-php.mjs     preview bridge: HTTP → PHP via php-wasm
+  scripts/php-harness.mjs   php-wasm session used by tests and the bridge
+  scripts/export-php-data.mjs  generates api-php/data from the Node source
   Dockerfile             production image: node:22-alpine, non-root, healthcheck
+  Dockerfile.php         production image: php:8.3-cli + pdo_sqlite
   docker-compose.yml     single-host deploy with a named volume at /data
+  compose.php.yml        the same for the PHP + React build
   render.yaml, fly.toml  managed-platform blueprints
   deploy/                systemd unit, nginx and Caddy configs
 ```
@@ -310,6 +362,7 @@ docker compose ps             # STATUS becomes "healthy"
 | Target          | Files                                                  |
 | --------------- | ------------------------------------------------------ |
 | Single host     | `docker-compose.yml`, `Dockerfile`                     |
+| PHP + React     | `compose.php.yml`, `Dockerfile.php`                    |
 | VPS + TLS       | `deploy/systemd/`, `deploy/nginx/`, `deploy/Caddyfile` |
 | Render / Fly.io | `render.yaml`, `fly.toml`                              |
 
