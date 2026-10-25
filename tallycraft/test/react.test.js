@@ -209,6 +209,45 @@ describe("the React client renders against the PHP backend", { skip: !available,
     assert.match(bodyText(), /Ravi Textiles/);
   });
 
+  test("a voucher can be typed and posted, and the new voucher opens", async () => {
+    await go("#/voucher/new?type=JOURNAL", "Post voucher");
+
+    const doc = globalThis.document;
+    const setValue = (element, value) => {
+      const prototype = Object.getPrototypeOf(element);
+      const setter = Object.getOwnPropertyDescriptor(prototype, "value")?.set;
+      setter.call(element, value);
+      element.dispatchEvent(new globalThis.window.Event("input", { bubbles: true }));
+      element.dispatchEvent(new globalThis.window.Event("change", { bubbles: true }));
+    };
+
+    // Two ledger lines and their amounts — a balanced journal of ₹500.
+    const table = doc.querySelector("table.entry-table");
+    const rows = table.querySelectorAll("tbody tr");
+    assert.equal(rows.length, 2, "entry form starts with two lines");
+
+    setValue(rows[0].querySelector("input[list=ledger-names]"), "Cash");
+    setValue(rows[0].querySelector("input.num-input"), "500");
+    setValue(rows[1].querySelector("input[list=ledger-names]"), "HDFC Bank - Current A/c");
+    const side = rows[1].querySelector("select");
+    setValue(side, "Cr");
+    setValue(rows[1].querySelector("input.num-input"), "500");
+    setValue(doc.querySelector("input[placeholder=\"What happened?\"]"), "Typed by the render test");
+
+    await waitFor(
+      () => doc.querySelector("button.primary[type=submit]")?.disabled === false,
+      "the form never became postable",
+    );
+    doc.querySelector("button.primary[type=submit]").click();
+
+    await waitFor(
+      () => bodyText().includes("Double entry") && bodyText().includes("Typed by the render test"),
+      "the posted voucher never opened",
+    );
+    assert.match(bodyText(), /JRN-0005/);
+    assert.match(bodyText(), /500\.00/);
+  });
+
   test("an unknown screen explains itself", async () => {
     await go("#/nope", "No such screen");
   });

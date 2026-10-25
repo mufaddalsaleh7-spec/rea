@@ -92,7 +92,7 @@ the Node one: `/api/vouchers/7` is the same voucher on both backends.
 
 ## What proves the port is honest
 
-`npm run php:test` (also part of `npm test`) runs four suites:
+`npm run php:test` (also part of `npm test`) runs five suites:
 
 1. **Route parity** — 30+ requests covering every endpoint, compared as status,
    parsed payload *and* byte-for-byte JSON text, so key order and number format
@@ -104,6 +104,9 @@ the Node one: `/api/vouchers/7` is the same voucher on both backends.
    assert a dry run writes nothing.
 4. **Seed parity** — a book built *only* by the PHP seeder is compared with the
    Node one: totals, stock valuation, net profit, ageing, ledgers, vouchers.
+5. **Front controller** — `api-php/public/index.php` is executed the way a web
+   server executes it (`tests/front.php` fills in the superglobals), and must
+   serve the API, the XML envelope and the React shell.
 
 Run the React client's own render tests with:
 

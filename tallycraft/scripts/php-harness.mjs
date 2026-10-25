@@ -61,7 +61,7 @@ async function collectProject(directory = phpRoot) {
  * virtual filesystem once and a descriptor file tells `runner.php` where the
  * database and the request list live.
  */
-export async function openPhpSession({ dbPath = null, seed = false } = {}) {
+export async function openPhpSession({ dbPath = null, seed = false, includeWeb = false } = {}) {
   const { loadNodeRuntime } = await import("@php-wasm/node");
   const { PHP } = await import("@php-wasm/universal");
 
@@ -75,6 +75,16 @@ export async function openPhpSession({ dbPath = null, seed = false } = {}) {
   }
   php.mkdirTree(`${BASE}/data`);
   php.mkdirTree("/tmp");
+
+  if (includeWeb) {
+    // The front controller serves the client itself; give it the same sibling
+    // `public/` directory the container mounts at /app/public.
+    for (const file of await collectProject(join(projectRoot, "public"))) {
+      const target = `/public/${relative(join(projectRoot, "public"), file).split("\\").join("/")}`;
+      php.mkdirTree(target.slice(0, target.lastIndexOf("/")));
+      php.writeFile(target, await readFile(file));
+    }
+  }
 
   const database = `${BASE}/data/${dbPath === null ? "tallycraft.db" : "parity.db"}`;
   if (dbPath !== null) {
@@ -105,13 +115,27 @@ export async function openPhpSession({ dbPath = null, seed = false } = {}) {
     return queue;
   };
 
+  /**
+   * Run one request through the real front controller (`public/index.php`).
+   * Used to prove the production entry point serves the API, the envelope and
+   * the static client — not just the router the parity tests call directly.
+   */
+  const runFront = (request) => {
+    queue = queue.then(async () => {
+      php.writeFile("/tmp/front.json", JSON.stringify(request));
+      const out = await php.run({ scriptPath: `${BASE}/tests/front.php` });
+      return { text: out.text ?? "", exitCode: out.exitCode, errors: out.errors ?? "" };
+    });
+    return queue;
+  };
+
   if (seed) {
     // Seed through the real API, so the demo book is produced by the same code
     // path a user would take (`POST /api/demo/reset`).
     await run([{ method: "POST", path: "/api/demo/reset" }]);
   }
 
-  return { run, database, php };
+  return { run, runFront, database, php };
 }
 
 /** One-shot: run the requests against a copy of `dbPath`, or a fresh seeded book. */
@@ -126,6 +150,22 @@ async function main() {
   const requests = flags.requests
     ? JSON.parse(await readFile(resolve(projectRoot, String(flags.requests)), "utf8"))
     : [{ method: "GET", path: "/api/company" }];
+
+  if (flags.front === true) {
+    // `--front` drives public/index.php once per request in the list.
+    const session = await openPhpSession({ seed: true, includeWeb: true });
+    const answers = [];
+    for (const request of requests) {
+      const answer = await session.runFront({
+        uri: `${request.path ?? "/"}${request.query ? `?${new URLSearchParams(request.query)}` : ""}`,
+        method: request.method ?? "GET",
+        query: request.query ?? {},
+      });
+      answers.push({ text: answer.text, exitCode: answer.exitCode });
+    }
+    process.stdout.write(`${JSON.stringify(answers)}\n`);
+    process.exit(0);
+  }
 
   // `--fresh` seeds a brand-new book inside the WASM filesystem: the only way
   // to prove the PHP seeder agrees with the Node one.

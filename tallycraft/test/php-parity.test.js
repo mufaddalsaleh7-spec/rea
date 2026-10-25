@@ -26,6 +26,30 @@ import { seed } from "../src/seed.js";
 const run = promisify(execFile);
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
+/**
+ * Start a PHP child process, retrying once.
+ *
+ * php-wasm boots an 8 MB WebAssembly PHP on first use; under a loaded machine
+ * that first boot can exceed the spawn budget and fail for no reason of ours.
+ * One retry turns a flake into a slow pass.
+ */
+async function harness(args) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const { stdout } = await run(
+        process.execPath,
+        ["--disable-warning=ExperimentalWarning", join(projectRoot, "scripts", "php-harness.mjs"), ...args],
+        { cwd: projectRoot, timeout: 240_000, maxBuffer: 64 * 1024 * 1024 },
+      );
+      return stdout;
+    } catch (error) {
+      if (attempt === 2) throw error;
+      await new Promise((done) => setTimeout(done, 2_000));
+    }
+  }
+  throw new Error("unreachable");
+}
+
 /** Every question the client asks, plus the reports that carry arithmetic. */
 const REQUESTS = [
   { method: "GET", path: "/healthz" },
@@ -108,19 +132,7 @@ before(async () => {
   await copyFile(dbPath, phpDb);
 
   try {
-    const { stdout } = await run(
-      process.execPath,
-      [
-        "--disable-warning=ExperimentalWarning",
-        join(projectRoot, "scripts", "php-harness.mjs"),
-        "--db",
-        phpDb,
-        "--requests",
-        requestsFile,
-      ],
-      { cwd: projectRoot, timeout: 180_000, maxBuffer: 32 * 1024 * 1024 },
-    );
-    phpResponses = JSON.parse(stdout);
+    phpResponses = JSON.parse(await harness(["--db", phpDb, "--requests", requestsFile]));
   } catch (error) {
     phpAvailable = false;
     console.error("php harness unavailable:", error.message.slice(0, 400));
@@ -305,19 +317,7 @@ describe("the PHP backend can write", { skip: !phpAvailable }, () => {
 
     const requestsFile = join(directory, "write-requests.json");
     await writeFile(requestsFile, JSON.stringify(WRITES), "utf8");
-    const { stdout } = await run(
-      process.execPath,
-      [
-        "--disable-warning=ExperimentalWarning",
-        join(projectRoot, "scripts", "php-harness.mjs"),
-        "--db",
-        phpDb,
-        "--requests",
-        requestsFile,
-      ],
-      { cwd: projectRoot, timeout: 180_000, maxBuffer: 32 * 1024 * 1024 },
-    );
-    phpAnswers = JSON.parse(stdout);
+    phpAnswers = JSON.parse(await harness(["--db", phpDb, "--requests", requestsFile]));
   });
 
   test("a posted voucher lands identically in both books", () => {
@@ -436,19 +436,7 @@ describe("the XML bridge behaves the same in both backends", { skip: !phpAvailab
       ]),
       "utf8",
     );
-    const { stdout } = await run(
-      process.execPath,
-      [
-        "--disable-warning=ExperimentalWarning",
-        join(projectRoot, "scripts", "php-harness.mjs"),
-        "--db",
-        phpDb,
-        "--requests",
-        requestsFile,
-      ],
-      { cwd: projectRoot, timeout: 180_000, maxBuffer: 64 * 1024 * 1024 },
-    );
-    phpAnswers = JSON.parse(stdout);
+    phpAnswers = JSON.parse(await harness(["--db", phpDb, "--requests", requestsFile]));
     phpXml = phpAnswers[0].body;
   });
 
@@ -518,18 +506,9 @@ describe("the PHP seeder reproduces the Node demo book", { skip: !phpAvailable }
     );
     // A child process: a fresh PHP book leaves the WASM runtime holding the
     // event loop, and the child knows how to end itself.
-    const { stdout } = await run(
-      process.execPath,
-      [
-        "--disable-warning=ExperimentalWarning",
-        join(projectRoot, "scripts", "php-harness.mjs"),
-        "--fresh",
-        "--requests",
-        requestsFile,
-      ],
-      { cwd: projectRoot, timeout: 180_000, maxBuffer: 64 * 1024 * 1024 },
+    phpReports = JSON.parse(await harness(["--fresh", "--requests", requestsFile])).map(
+      (answer) => answer.body,
     );
-    phpReports = JSON.parse(stdout).map((answer) => answer.body);
 
     const nodeDb = join(directory, "seed-node.db");
     const app = TallyCraft.open(nodeDb);
@@ -592,5 +571,42 @@ describe("the PHP seeder reproduces the Node demo book", { skip: !phpAvailable }
     assert.equal(statistics.netProfit, 287_907);
     assert.equal(phpReports[4].totalValue, 349_957);
     assert.equal(phpReports[3].netProfit, 287_907);
+  });
+});
+
+describe("the production front controller serves the whole app", { skip: !phpAvailable }, () => {
+  // Everything above drives the router directly. This suite drives
+  // `api-php/public/index.php`, the file a web server actually executes.
+  const FRONT_REQUESTS = [
+    { method: "GET", path: "/api/company" },
+    { method: "GET", path: "/healthz" },
+    { method: "GET", path: "/api/export/xml", query: { vouchers: "false", masters: "false" } },
+    { method: "GET", path: "/api/nothing" },
+    { method: "GET", path: "/app/index.html" },
+    { method: "GET", path: "/snapshot.html" },
+  ];
+  let answers;
+
+  before(async () => {
+    const requestsFile = join(directory, "front-requests.json");
+    await writeFile(requestsFile, JSON.stringify(FRONT_REQUESTS), "utf8");
+    answers = JSON.parse(await harness(["--front", "--requests", requestsFile]));
+  });
+
+  test("it answers the API exactly like the router does", () => {
+    const company = JSON.parse(answers[0].text);
+    assert.equal(company.name, "Surat Weaves Pvt Ltd");
+    assert.equal(company.gstin, "24AABCS4321P1Z9");
+    assert.equal(answers[1].text.trim(), "ok");
+    assert.match(answers[2].text, /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<ENVELOPE>/);
+    assert.match(answers[2].text, /<\/ENVELOPE>\n$/);
+    assert.equal(JSON.parse(answers[3].text).error.code, "NOT_FOUND");
+  });
+
+  test("it serves the React shell and the offline snapshot", () => {
+    assert.match(answers[4].text, /<div id="root"><\/div>/);
+    assert.match(answers[4].text, /\.\/assets\/app\.js/);
+    assert.match(answers[5].text, /TallyCraft/);
+    assert.ok(answers[5].text.length > 10_000, "the snapshot is a whole document");
   });
 });

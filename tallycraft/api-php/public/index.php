@@ -62,12 +62,26 @@ if ($method === 'GET' && ($path === '/' || $path === '/app' || $path === '/app/'
 
 if (str_starts_with($path, '/api/') || $path === '/healthz') {
     $router = new Router($bootstrap);
-    $body = $method === 'POST' ? file_get_contents('php://input') : null;
+    $body = null;
+    if ($method === 'POST' || $method === 'PUT' || $method === 'PATCH') {
+        // Same ceiling as the Node server: an envelope bigger than this is a
+        // mistake, not a book.
+        $declared = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+        if ($declared > 12 * 1024 * 1024) {
+            http_response_code(413);
+            Json::body(['error' => ['code' => 'PAYLOAD_TOO_LARGE', 'message' => 'Request body exceeds 12 MB', 'details' => null]]);
+        }
+        $body = (string) file_get_contents('php://input');
+    }
     $result = $router->handle($method, $path, $_GET, $body);
     http_response_code($result['status']);
     if (is_string($result['body'])) {
-        header('content-type: text/plain; charset=utf-8');
+        $isXml = $path === '/api/export/xml';
+        header('content-type: ' . ($isXml ? 'application/xml; charset=utf-8' : 'text/plain; charset=utf-8'));
         header('cache-control: no-store');
+        if ($isXml) {
+            header('content-disposition: attachment; filename="tallycraft-' . gmdate('Y-m-d') . '.xml"');
+        }
         echo $result['body'];
         exit;
     }
