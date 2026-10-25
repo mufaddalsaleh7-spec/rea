@@ -11,6 +11,9 @@
     "CHANGELOG.md",
     "package-lock.json",
     "_reference/**",
-    "third_party/**"
+    "third_party/**",
+    "apps/vectorstudio/**",
+    "vectorstudio.html",
+    "apps/vectorstudio-web/**"
   ]
 }

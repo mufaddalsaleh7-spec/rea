@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VectorStudio — Untitled-1</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23330000'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='19' font-weight='700' fill='%23ff9a00' text-anchor='middle'%3EVs%3C/text%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="app" class="app">
+      <!-- ================= Menu bar ================= -->
+      <header id="menubar" class="menubar" role="menubar" aria-label="Application menu">
+        <div class="menubar__items" id="menu-items"></div>
+        <div class="menubar__spacer"></div>
+        <button class="menubar__workspace" id="workspace-switcher" title="Workspace">
+          <span>Essentials</span>
+          <svg viewBox="0 0 10 6" width="8" height="8" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
+        </button>
+        <button class="menubar__icon" id="btn-help" title="VectorStudio Help (F1)" aria-label="Help">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M6.3 6.1a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.3" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="8" cy="11.5" r=".8" fill="currentColor"/></svg>
+        </button>
+      </header>
+
+      <!-- ================= Control bar ================= -->
+      <div id="controlbar" class="controlbar" aria-label="Control bar"></div>
+
+      <!-- ================= Workspace ================= -->
+      <div class="workspace">
+        <!-- Toolbar -->
+        <nav id="toolbar" class="toolbar" aria-label="Tools"></nav>
+
+        <!-- Document + canvas -->
+        <main class="stage">
+          <div class="tabbar" id="tabbar"></div>
+          <div class="canvas-area" id="canvas-area">
+            <div class="ruler-corner" id="ruler-corner"></div>
+            <canvas id="ruler-h" class="ruler ruler--h"></canvas>
+            <canvas id="ruler-v" class="ruler ruler--v"></canvas>
+            <div class="viewport" id="viewport">
+              <canvas id="scene" class="scene"></canvas>
+              <canvas id="overlay" class="overlay"></canvas>
+              <div class="text-editor" id="text-editor" contenteditable="true" spellcheck="false" hidden></div>
+              <div class="live-preview" id="live-preview" hidden></div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Panel dock -->
+        <aside class="dock" id="dock" aria-label="Panels"></aside>
+      </div>
+
+      <!-- ================= Status bar ================= -->
+      <footer class="statusbar" id="statusbar">
+        <div class="statusbar__group">
+          <label class="zoom-control">
+            <span class="zoom-control__icon" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="12" height="12"><circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M10.4 10.4L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <select id="zoom-select" aria-label="Zoom level">
+              <option value="0.03">3%</option>
+              <option value="0.0625">6.25%</option>
+              <option value="0.125">12.5%</option>
+              <option value="0.25">25%</option>
+              <option value="0.3333">33.33%</option>
+              <option value="0.5">50%</option>
+              <option value="0.6667">66.67%</option>
+              <option value="0.75">75%</option>
+              <option value="1">100%</option>
+              <option value="1.5">150%</option>
+              <option value="2">200%</option>
+              <option value="3">300%</option>
+              <option value="4">400%</option>
+              <option value="6">600%</option>
+              <option value="8">800%</option>
+              <option value="12">1200%</option>
+              <option value="16">1600%</option>
+              <option value="24">2400%</option>
+              <option value="32">3200%</option>
+              <option value="64">6400%</option>
+            </select>
+          </label>
+          <span class="statusbar__sep"></span>
+          <span id="status-tool" class="statusbar__text">Selection Tool</span>
+        </div>
+        <div class="statusbar__spacer"></div>
+        <div class="statusbar__group statusbar__group--right">
+          <span id="status-artboard" class="statusbar__text">Artboard 1</span>
+          <span class="statusbar__sep"></span>
+          <span id="status-mode" class="statusbar__text">RGB</span>
+          <span class="statusbar__sep"></span>
+          <span id="status-info" class="statusbar__text statusbar__text--muted">Ready</span>
+          <span class="statusbar__sep"></span>
+          <span id="status-rea" class="statusbar__badge" title="REA session: local evidence capture active">REA</span>
+        </div>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+    <div id="modal-root"></div>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

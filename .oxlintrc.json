@@ -91,6 +91,33 @@
           }
         ]
       }
+    },
+    {
+      "files": ["apps/vectorstudio/**/*.js"],
+      "env": {
+        "browser": true
+      },
+      "rules": {
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "complexity": "off",
+        "max-depth": "off",
+        "max-params": "off"
+      }
+    },
+    {
+      "files": ["apps/vectorstudio-web/src/**/*.{js,jsx}"],
+      "env": {
+        "browser": true
+      },
+      "rules": {
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "complexity": "off",
+        "max-depth": "off",
+        "max-params": "off",
+        "no-var": "off"
+      }
     }
   ],
   "env": {

@@ -1,0 +1,28 @@
+{
+  "name": "vectorstudio-web",
+  "private": true,
+  "version": "2.0.0",
+  "description": "VectorStudio — Illustrator-grade vector workspace. React front end, PHP document API.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "php": "php -S 127.0.0.1:8080 -t php/public php/public/index.php",
+    "php:wasm": "node scripts/php-wasm-server.mjs",
+    "test:php": "php php/tests/run.php",
+    "test:php:wasm": "node scripts/run-php-tests.mjs",
+    "start": "npm run build && node scripts/php-wasm-server.mjs",
+    "check": "oxlint src --config ../../.oxlintrc.json"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@php-wasm/node": "^3.1.60",
+    "@php-wasm/universal": "^3.1.60",
+    "@vitejs/plugin-react": "^5.1.0",
+    "vite": "^7.2.0"
+  }
+}

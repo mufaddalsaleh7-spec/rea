@@ -1,0 +1,7 @@
+node_modules/
+dist/
+php/storage/*.sqlite
+php/storage/*.sqlite-*
+php/storage/assets/
+php/storage/exports/
+.DS_Store
